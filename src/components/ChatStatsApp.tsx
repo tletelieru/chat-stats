@@ -8,15 +8,18 @@ import {
   Typography,
   createTheme,
 } from '@mui/material';
+import { Suspense, lazy } from 'react';
 import ChatPicker from './Import/ChatPicker';
 import Dropzone from './Import/Dropzone';
 import ReviewPeople from './Import/ReviewPeople';
 import { useChatSession } from './useChatSession';
 
+const StatsPage = lazy(() => import('./Stats/StatsPage'));
+
 const theme = createTheme({ colorSchemes: { dark: true } });
 
 export default function ChatStatsApp() {
-  const { state, openFile, pickChat, confirmPeople, reset } = useChatSession();
+  const { state, stats, openFile, pickChat, confirmPeople, compute, reset } = useChatSession();
 
   return (
     <ThemeProvider theme={theme}>
@@ -43,6 +46,11 @@ export default function ChatStatsApp() {
               chat={state.chat}
               onConfirm={(names, aliases) => confirmPeople(state.chat, names, aliases)}
             />
+          )}
+          {state.phase === 'stats' && (
+            <Suspense fallback={<LinearProgress />}>
+              <StatsPage chat={state.chat} stats={stats} onCompute={compute} />
+            </Suspense>
           )}
         </Stack>
       </Container>

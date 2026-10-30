@@ -44,7 +44,6 @@
     "@streamparser/json": "^0.0.22",
     "@vite-pwa/astro": "^1.2.0",
     "astro": "^7.4.1",
-    "date-fns": "^4.1.0",
     "echarts": "^6.0.0",
     "echarts-for-react": "^3.0.2",
     "fflate": "^0.8.2",
