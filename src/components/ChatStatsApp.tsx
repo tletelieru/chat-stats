@@ -1,18 +1,50 @@
-import { Container, CssBaseline, ThemeProvider, Typography, createTheme } from '@mui/material';
+import {
+  Button,
+  Container,
+  CssBaseline,
+  LinearProgress,
+  Stack,
+  ThemeProvider,
+  Typography,
+  createTheme,
+} from '@mui/material';
+import ChatPicker from './Import/ChatPicker';
+import Dropzone from './Import/Dropzone';
+import ReviewPeople from './Import/ReviewPeople';
+import { useChatSession } from './useChatSession';
 
 const theme = createTheme({ colorSchemes: { dark: true } });
 
 export default function ChatStatsApp() {
+  const { state, openFile, pickChat, confirmPeople, reset } = useChatSession();
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Typography variant="h4" component="h1">
-          Chat Stats
-        </Typography>
-        <Typography color="text.secondary">
-          Telegram and WhatsApp export analyzer. Nothing leaves your device.
-        </Typography>
+        <Stack spacing={3}>
+          <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="h4" component="h1">
+              Chat Stats
+            </Typography>
+            {state.phase !== 'empty' && <Button onClick={reset}>New chat</Button>}
+          </Stack>
+
+          {state.phase === 'empty' && <Dropzone error={state.error} onFile={openFile} />}
+          {state.phase === 'parsing' && (
+            <Stack spacing={1}>
+              <Typography>{state.label}</Typography>
+              <LinearProgress variant="determinate" value={Math.min(state.ratio, 1) * 100} />
+            </Stack>
+          )}
+          {state.phase === 'pick' && <ChatPicker chats={state.chats} onPick={pickChat} />}
+          {state.phase === 'review' && (
+            <ReviewPeople
+              chat={state.chat}
+              onConfirm={(names, aliases) => confirmPeople(state.chat, names, aliases)}
+            />
+          )}
+        </Stack>
       </Container>
     </ThemeProvider>
   );
