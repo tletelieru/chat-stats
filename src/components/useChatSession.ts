@@ -12,6 +12,11 @@ export type LoadedChat = {
   preview: PreviewMessage[];
 };
 
+export type MediaState = {
+  ratio: number;
+  thumbs: Record<string, string>;
+};
+
 export type SessionState =
   | { phase: 'empty'; error?: string }
   | { phase: 'parsing'; ratio: number; label: string }
@@ -23,11 +28,24 @@ export function useChatSession() {
   const worker = useRef<Worker | null>(null);
   const runId = useRef(0);
   const [state, setState] = useState<SessionState>({ phase: 'empty' });
+  const lastFilter = useRef<Filter | null>(null);
+  const hashRequested = useRef(false);
+  const urls = useRef<string[]>([]);
   const [stats, setStats] = useState<StatsResult | null>(null);
+  const [media, setMedia] = useState<MediaState>({ ratio: 0, thumbs: {} });
 
   const send = useCallback((request: WorkerRequest) => {
     worker.current?.postMessage(request);
   }, []);
+
+  const clearMedia = useCallback(() => {
+    urls.current.forEach((url) => URL.revokeObjectURL(url));
+    urls.current = [];
+    hashRequested.current = false;
+    setMedia({ ratio: 0, thumbs: {} });
+  }, []);
+
+  useEffect(() => clearMedia, [clearMedia]);
 
   useEffect(() => {
     const instance = new Worker(new URL('../lib/worker.ts', import.meta.url), { type: 'module' });
@@ -41,20 +59,41 @@ export function useChatSession() {
         setState({ phase: 'review', chat: data });
       } else if (data.type === 'error') {
         setState({ phase: 'empty', error: data.message });
+      } else if (data.type === 'mediaProgress') {
+        setMedia((current) => ({ ...current, ratio: data.ratio }));
+      } else if (data.type === 'media') {
+        const thumbs = Object.fromEntries(
+          Object.entries(data.thumbs).map(([key, blob]) => [key, URL.createObjectURL(blob)]),
+        );
+        urls.current = Object.values(thumbs);
+        setMedia({ ratio: 1, thumbs });
+        if (data.merged && lastFilter.current) {
+          runId.current += 1;
+          instance.postMessage({
+            type: 'compute',
+            runId: runId.current,
+            filter: lastFilter.current,
+          } satisfies WorkerRequest);
+        }
       } else if (data.runId === runId.current) {
         setStats(data.stats);
+        if (!hashRequested.current) {
+          hashRequested.current = true;
+          instance.postMessage({ type: 'hashMedia' } satisfies WorkerRequest);
+        }
       }
     };
     return () => instance.terminate();
   }, []);
 
-  const openFile = useCallback(
-    (file: File) => {
+  const openFiles = useCallback(
+    (files: File[]) => {
       setStats(null);
+      clearMedia();
       setState({ phase: 'parsing', ratio: 0, label: 'Opening file' });
-      send({ type: 'open', file });
+      send({ type: 'open', files });
     },
-    [send],
+    [send, clearMedia],
   );
 
   const pickChat = useCallback(
@@ -75,6 +114,7 @@ export function useChatSession() {
 
   const compute = useCallback(
     (filter: Filter) => {
+      lastFilter.current = filter;
       runId.current += 1;
       send({ type: 'compute', runId: runId.current, filter });
     },
@@ -83,8 +123,9 @@ export function useChatSession() {
 
   const reset = useCallback(() => {
     setStats(null);
+    clearMedia();
     setState({ phase: 'empty' });
-  }, []);
+  }, [clearMedia]);
 
-  return { state, stats, openFile, pickChat, confirmPeople, compute, reset };
+  return { state, stats, media, openFiles, pickChat, confirmPeople, compute, reset };
 }

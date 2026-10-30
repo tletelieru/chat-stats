@@ -1,6 +1,6 @@
 import { LinearProgress, Stack } from '@mui/material';
 import { useEffect, useRef, useState } from 'react';
-import type { LoadedChat } from '~/components/useChatSession';
+import type { LoadedChat, MediaState } from '~/components/useChatSession';
 import type { Filter, StatsResult } from '~/lib/stats/types';
 import { DEFAULT_TIME_ZONE, wallTimeToTs } from '~/lib/time';
 import FilterBar from './FilterBar';
@@ -42,10 +42,11 @@ export function toFilter(controls: Controls, lastTs: number | null): Filter {
 type Props = {
   chat: LoadedChat;
   stats: StatsResult | null;
+  media?: MediaState;
   onCompute: (filter: Filter) => void;
 };
 
-export default function StatsPage({ stats, onCompute }: Props) {
+export default function StatsPage({ stats, media, onCompute }: Props) {
   const [controls, setControls] = useState(INITIAL);
   const lastTs = useRef<number | null>(null);
 
@@ -63,7 +64,7 @@ export default function StatsPage({ stats, onCompute }: Props) {
   return (
     <Stack spacing={2}>
       <FilterBar people={stats.people} controls={controls} onChange={setControls} />
-      <StatsView stats={stats} timeZone={controls.timeZone} />
+      <StatsView stats={stats} timeZone={controls.timeZone} media={media} />
     </Stack>
   );
 }

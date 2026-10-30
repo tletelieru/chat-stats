@@ -19,7 +19,8 @@ const StatsPage = lazy(() => import('./Stats/StatsPage'));
 const theme = createTheme({ colorSchemes: { dark: true } });
 
 export default function ChatStatsApp() {
-  const { state, stats, openFile, pickChat, confirmPeople, compute, reset } = useChatSession();
+  const { state, stats, media, openFiles, pickChat, confirmPeople, compute, reset } =
+    useChatSession();
 
   return (
     <ThemeProvider theme={theme}>
@@ -33,7 +34,7 @@ export default function ChatStatsApp() {
             {state.phase !== 'empty' && <Button onClick={reset}>New chat</Button>}
           </Stack>
 
-          {state.phase === 'empty' && <Dropzone error={state.error} onFile={openFile} />}
+          {state.phase === 'empty' && <Dropzone error={state.error} onFiles={openFiles} />}
           {state.phase === 'parsing' && (
             <Stack spacing={1}>
               <Typography>{state.label}</Typography>
@@ -49,7 +50,7 @@ export default function ChatStatsApp() {
           )}
           {state.phase === 'stats' && (
             <Suspense fallback={<LinearProgress />}>
-              <StatsPage chat={state.chat} stats={stats} onCompute={compute} />
+              <StatsPage chat={state.chat} stats={stats} media={media} onCompute={compute} />
             </Suspense>
           )}
         </Stack>

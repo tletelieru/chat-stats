@@ -77,7 +77,7 @@ describe('createSession', () => {
     const { session, find } = collect();
     await session.handle({
       type: 'open',
-      file: fileOf('result.json', JSON.stringify(single, null, 1)),
+      files: [fileOf('result.json', JSON.stringify(single, null, 1))],
     });
     expect(find('error')).toBeUndefined();
     expect(find('ready')).toMatchObject({ name: 'Ana Prueba', messageCount: 9 });
@@ -88,7 +88,7 @@ describe('createSession', () => {
     const { session, find } = collect();
     await session.handle({
       type: 'open',
-      file: fileOf('result.json', JSON.stringify(account, null, 1)),
+      files: [fileOf('result.json', JSON.stringify(account, null, 1))],
     });
     expect(find('chats')?.chats).toHaveLength(2);
     await session.handle({ type: 'pick', index: 0 });
@@ -97,20 +97,20 @@ describe('createSession', () => {
 
   it('opens WhatsApp text and reports unknown media', async () => {
     const { session, find } = collect();
-    await session.handle({ type: 'open', file: fileOf('Chat con Ana.txt', androidEs24h) });
+    await session.handle({ type: 'open', files: [fileOf('Chat con Ana.txt', androidEs24h)] });
     expect(find('ready')).toMatchObject({ name: 'Chat con Ana', unknownMedia: 1 });
   });
 
   it('reports unsupported files', async () => {
     const { session, find } = collect();
-    await session.handle({ type: 'open', file: fileOf('notes.txt', 'nothing here') });
+    await session.handle({ type: 'open', files: [fileOf('notes.txt', 'nothing here')] });
     expect(find('error')?.message).toContain('Unsupported');
   });
 
   it('drops stale runs and answers the latest', async () => {
     vi.useFakeTimers();
     const { session, responses } = collect();
-    await session.handle({ type: 'open', file: fileOf('a.txt', androidEs24h) });
+    await session.handle({ type: 'open', files: [fileOf('a.txt', androidEs24h)] });
     const filter = { gapMs: 3_600_000, timeZone: 'UTC' };
     await session.handle({ type: 'compute', runId: 1, filter });
     await session.handle({ type: 'compute', runId: 2, filter: { ...filter, gapMs: 60_000 } });

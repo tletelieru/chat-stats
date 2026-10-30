@@ -20,11 +20,11 @@ const chat: LoadedChat = {
 
 describe('Dropzone', () => {
   it('sends the chosen file', async () => {
-    const onFile = vi.fn();
-    render(<Dropzone onFile={onFile} />);
+    const onFiles = vi.fn();
+    render(<Dropzone onFiles={onFiles} />);
     const file = new File(['x'], 'result.json');
     await userEvent.upload(screen.getByLabelText('Chat export file'), file);
-    expect(onFile).toHaveBeenCalledWith(file);
+    expect(onFiles).toHaveBeenCalledWith([file]);
   });
 });
 

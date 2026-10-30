@@ -32,6 +32,7 @@ describe('StatsPage', () => {
       'Conversations',
       'Response times',
       'Media and message types',
+      'Stickers and GIFs',
       'Calls',
       'Activity',
       'Words and emoji',

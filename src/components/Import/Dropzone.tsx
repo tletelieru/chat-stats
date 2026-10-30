@@ -1,20 +1,25 @@
 import { Alert, Box, Button, Stack, Typography } from '@mui/material';
 import { useState } from 'react';
-import type { DragEvent } from 'react';
+import type { ChangeEvent, DragEvent } from 'react';
 
 type Props = {
   error?: string;
-  onFile: (file: File) => void;
+  onFiles: (files: File[]) => void;
 };
 
-export default function Dropzone({ error, onFile }: Props) {
+const FOLDER_INPUT = { webkitdirectory: '' };
+
+export default function Dropzone({ error, onFiles }: Props) {
   const [dragging, setDragging] = useState(false);
+
+  const onPick = (event: ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files?.length) onFiles([...event.target.files]);
+  };
 
   const onDrop = (event: DragEvent) => {
     event.preventDefault();
     setDragging(false);
-    const file = event.dataTransfer.files[0];
-    if (file) onFile(file);
+    if (event.dataTransfer.files.length) onFiles([...event.dataTransfer.files]);
   };
 
   return (
@@ -43,19 +48,31 @@ export default function Dropzone({ error, onFile }: Props) {
         <Typography color="text.secondary" gutterBottom>
           Telegram result.json, WhatsApp .txt or .zip
         </Typography>
-        <Button component="label" variant="contained">
-          Choose file
-          <input
-            hidden
-            type="file"
-            aria-label="Chat export file"
-            accept=".json,.txt,.zip"
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              if (file) onFile(file);
-            }}
-          />
-        </Button>
+        <Stack direction="row" spacing={1} sx={{ justifyContent: 'center' }}>
+          <Button component="label" variant="contained">
+            Choose file
+            <input
+              hidden
+              type="file"
+              aria-label="Chat export file"
+              accept=".json,.txt,.zip"
+              onChange={onPick}
+            />
+          </Button>
+          <Button component="label" variant="outlined">
+            Choose export folder
+            <input
+              hidden
+              type="file"
+              aria-label="Chat export folder"
+              onChange={onPick}
+              {...FOLDER_INPUT}
+            />
+          </Button>
+        </Stack>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+          Pick the Telegram export folder to identify stickers and GIFs. They stay on this device.
+        </Typography>
       </Box>
       <Typography variant="body2" color="text.secondary">
         Everything runs on this device. Nothing is uploaded or stored.

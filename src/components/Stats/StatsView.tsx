@@ -1,5 +1,6 @@
 import { MenuItem, Stack, TextField, Typography } from '@mui/material';
 import { useMemo, useState } from 'react';
+import type { MediaState } from '~/components/useChatSession';
 import type { MessageKind } from '~/lib/model';
 import type { ResponsePair, StatsResult } from '~/lib/stats/types';
 import Chart, { useChartTheme } from './Chart';
@@ -24,6 +25,7 @@ import {
   percent,
   weekday,
 } from './format';
+import MediaRanking from './MediaRanking';
 import { PersonTable, RankedChips, Section, Subheading, Tile } from './parts';
 import type { Row } from './parts';
 
@@ -61,7 +63,13 @@ function Pair({ label, pair, names, timeZone }: PairProps) {
   );
 }
 
-export default function StatsView({ stats, timeZone }: { stats: StatsResult; timeZone: string }) {
+type Props = {
+  stats: StatsResult;
+  timeZone: string;
+  media?: MediaState;
+};
+
+export default function StatsView({ stats, timeZone, media }: Props) {
   const theme = useChartTheme();
   const names = useMemo(() => stats.people.map(({ name }) => name), [stats.people]);
   const weights = stats.overview.perPerson.map(({ messages }) => messages);
@@ -251,6 +259,8 @@ export default function StatsView({ stats, timeZone }: { stats: StatsResult; tim
       <Section title="Media and message types">
         <PersonTable names={names} rows={mediaRows} />
       </Section>
+
+      <MediaRanking stickers={stats.stickers} names={names} media={media} />
 
       <Section title="Calls">
         <PersonTable names={names} rows={callRows} />
