@@ -75,7 +75,8 @@ export default function Dropzone({ error, onFiles }: Props) {
         </Typography>
       </Box>
       <Typography variant="body2" color="text.secondary">
-        Everything runs on this device. Nothing is uploaded or stored.
+        Everything runs on this device. Nothing is uploaded, and nothing is stored unless you save
+        stats. Saved stats keep top words and emoji, never whole messages.
       </Typography>
     </Stack>
   );

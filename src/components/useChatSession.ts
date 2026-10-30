@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ChatSummary, Participant } from '~/lib/model';
 import type { PreviewMessage, WorkerRequest, WorkerResponse } from '~/lib/session';
+import { takeSharedFile } from '~/lib/shared';
 import type { Filter, StatsResult } from '~/lib/stats/types';
 
 export type LoadedChat = {
@@ -111,6 +112,20 @@ export function useChatSession() {
     },
     [send],
   );
+
+  useEffect(() => {
+    if ('serviceWorker' in navigator && import.meta.env.PROD) {
+      void navigator.serviceWorker.register(`${import.meta.env.BASE_URL.replace(/\/$/, '')}/sw.js`);
+    }
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('shared')) {
+      url.searchParams.delete('shared');
+      window.history.replaceState(null, '', url);
+      void takeSharedFile().then((file) => {
+        if (file) openFiles([file]);
+      });
+    }
+  }, [openFiles]);
 
   const compute = useCallback(
     (filter: Filter) => {

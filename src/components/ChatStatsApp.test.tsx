@@ -1,6 +1,11 @@
 import { render, screen } from '@testing-library/react';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
+import type { SavedStats } from '~/lib/saved';
 import ChatStatsApp from './ChatStatsApp';
+
+vi.mock('~/lib/saved', () => ({
+  listSaved: async (): Promise<SavedStats[]> => [],
+}));
 
 beforeAll(() => {
   vi.stubGlobal(

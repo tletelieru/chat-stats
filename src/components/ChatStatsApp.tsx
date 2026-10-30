@@ -8,19 +8,23 @@ import {
   Typography,
   createTheme,
 } from '@mui/material';
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useState } from 'react';
+import type { SavedStats } from '~/lib/saved';
 import ChatPicker from './Import/ChatPicker';
 import Dropzone from './Import/Dropzone';
 import ReviewPeople from './Import/ReviewPeople';
+import SavedList from './Import/SavedList';
 import { useChatSession } from './useChatSession';
 
 const StatsPage = lazy(() => import('./Stats/StatsPage'));
+const StatsView = lazy(() => import('./Stats/StatsView'));
 
 const theme = createTheme({ colorSchemes: { dark: true } });
 
 export default function ChatStatsApp() {
   const { state, stats, media, openFiles, pickChat, confirmPeople, compute, reset } =
     useChatSession();
+  const [saved, setSaved] = useState<SavedStats | null>(null);
 
   return (
     <ThemeProvider theme={theme}>
@@ -31,10 +35,32 @@ export default function ChatStatsApp() {
             <Typography variant="h4" component="h1">
               Chat Stats
             </Typography>
-            {state.phase !== 'empty' && <Button onClick={reset}>New chat</Button>}
+            {(state.phase !== 'empty' || saved) && (
+              <Button
+                onClick={() => {
+                  setSaved(null);
+                  reset();
+                }}
+              >
+                New chat
+              </Button>
+            )}
           </Stack>
 
-          {state.phase === 'empty' && <Dropzone error={state.error} onFiles={openFiles} />}
+          {state.phase === 'empty' && !saved && (
+            <>
+              <Dropzone error={state.error} onFiles={openFiles} />
+              <SavedList onOpen={setSaved} />
+            </>
+          )}
+          {saved && (
+            <Suspense fallback={<LinearProgress />}>
+              <Typography variant="h6" component="h2">
+                {saved.name}
+              </Typography>
+              <StatsView stats={saved.stats} timeZone={saved.timeZone} />
+            </Suspense>
+          )}
           {state.phase === 'parsing' && (
             <Stack spacing={1}>
               <Typography>{state.label}</Typography>

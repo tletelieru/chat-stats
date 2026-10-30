@@ -1,6 +1,7 @@
-import { LinearProgress, Stack } from '@mui/material';
+import { Alert, Button, LinearProgress, Stack } from '@mui/material';
 import { useEffect, useRef, useState } from 'react';
 import type { LoadedChat, MediaState } from '~/components/useChatSession';
+import { saveStats } from '~/lib/saved';
 import type { Filter, StatsResult } from '~/lib/stats/types';
 import { DEFAULT_TIME_ZONE, wallTimeToTs } from '~/lib/time';
 import FilterBar from './FilterBar';
@@ -46,8 +47,9 @@ type Props = {
   onCompute: (filter: Filter) => void;
 };
 
-export default function StatsPage({ stats, media, onCompute }: Props) {
+export default function StatsPage({ chat, stats, media, onCompute }: Props) {
   const [controls, setControls] = useState(INITIAL);
+  const [savedOk, setSavedOk] = useState(false);
   const lastTs = useRef<number | null>(null);
 
   useEffect(() => {
@@ -64,6 +66,23 @@ export default function StatsPage({ stats, media, onCompute }: Props) {
   return (
     <Stack spacing={2}>
       <FilterBar people={stats.people} controls={controls} onChange={setControls} />
+      <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={() => {
+            void saveStats({
+              name: chat.name,
+              savedAt: Date.now(),
+              timeZone: controls.timeZone,
+              stats,
+            }).then(() => setSavedOk(true));
+          }}
+        >
+          Save stats on this device
+        </Button>
+        {savedOk && <Alert severity="success">Saved</Alert>}
+      </Stack>
       <StatsView stats={stats} timeZone={controls.timeZone} media={media} />
     </Stack>
   );
