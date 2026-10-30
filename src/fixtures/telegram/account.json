@@ -1,0 +1,31 @@
+{
+  "about": "Synthetic account export",
+  "personal_information": { "first_name": "Prueba" },
+  "chats": {
+    "about": "All chats",
+    "list": [
+      {
+        "name": "Grupo Demo",
+        "type": "private_group",
+        "id": 2001,
+        "messages": [
+          {
+            "id": 1,
+            "type": "message",
+            "date": "2026-02-01T09:00:00",
+            "date_unixtime": "1769936400",
+            "from": "Carla Falsa",
+            "from_id": "user300",
+            "text": "hola grupo"
+          }
+        ]
+      },
+      {
+        "name": null,
+        "type": "personal_chat",
+        "id": 2002,
+        "messages": []
+      }
+    ]
+  }
+}
