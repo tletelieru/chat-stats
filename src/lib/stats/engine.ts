@@ -84,6 +84,7 @@ export function computeStats(columns: Columns, filter: Filter): StatsResult {
     flags: countResult.flags,
     calls: callResult.people,
     unattributedCalls: callResult.unattributed,
+    estimatedCalls: callResult.estimated,
     reactions: countResult.reactions,
     stickers: countResult.stickers,
     activity: activityResult,
