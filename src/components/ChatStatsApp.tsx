@@ -15,6 +15,7 @@ import { LocaleProvider, useMessages } from '~/i18n/react';
 import type { SavedStats } from '~/lib/saved';
 import { colorModeKey, createAppTheme, pickColorMode } from '~/lib/theme';
 import type { ColorMode } from '~/lib/theme';
+import Footer from './Footer';
 import Header from './Header';
 import ChatPicker from './Import/ChatPicker';
 import Landing from './Import/Landing';
@@ -99,6 +100,7 @@ function Content({ locale, mode, onLocale, onToggleMode }: ContentProps) {
             <StatsPage chat={state.chat} stats={stats} media={media} onCompute={compute} />
           </Suspense>
         )}
+        <Footer />
       </Stack>
     </Container>
   );

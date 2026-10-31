@@ -25,9 +25,14 @@ type Strings = {
   };
   howTo: {
     title: string;
-    guides: { name: string; steps: string[]; images?: { src: string; alt: string }[] }[];
+    guides: {
+      name: 'Telegram' | 'WhatsApp';
+      steps: string[];
+      images?: { src: string; alt: string }[];
+    }[];
   };
   privacy: string;
+  footer: { developedBy: string; site: string };
   picker: {
     title: string;
     search: string;
@@ -194,6 +199,7 @@ type Strings = {
 const en: Strings = {
   appName: 'Chat Stats',
   tagline: 'Private chat analytics',
+  footer: { developedBy: 'Developed by', site: 'My site' },
   newChat: 'New chat',
   toLight: 'Switch to light mode',
   toDark: 'Switch to dark mode',
@@ -474,6 +480,7 @@ const en: Strings = {
 const es: Strings = {
   appName: 'Chat Stats',
   tagline: 'Estadísticas privadas de tus chats',
+  footer: { developedBy: 'Desarrollado por', site: 'Mi sitio' },
   newChat: 'Nuevo chat',
   toLight: 'Cambiar a modo claro',
   toDark: 'Cambiar a modo oscuro',

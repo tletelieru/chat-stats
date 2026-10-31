@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SavedStats } from '~/lib/saved';
@@ -25,6 +25,19 @@ describe('ChatStatsApp', () => {
     render(<ChatStatsApp />);
     expect(screen.getByText('Chat Stats')).toBeInTheDocument();
     expect(screen.getByTestId('dropzone')).toBeInTheDocument();
+  });
+
+  it('credits the developer in the footer', () => {
+    render(<ChatStatsApp />);
+    const footer = within(screen.getByRole('contentinfo'));
+    expect(footer.getByRole('link', { name: 'tletelieru' })).toHaveAttribute(
+      'href',
+      'https://github.com/tletelieru',
+    );
+    expect(footer.getByRole('link', { name: 'My site' })).toHaveAttribute(
+      'href',
+      'https://tletelieru.github.io/tletelieru/',
+    );
   });
 
   it('switches language and remembers it', async () => {
