@@ -1,6 +1,13 @@
 import { MESSAGE_KINDS } from '~/lib/model';
 import type { MessageKind } from '~/lib/model';
-import { CALL_MISSED, FLAG_DELETED, FLAG_EDITED, FLAG_FORWARDED, KIND_ID } from './columns';
+import {
+  CALL_MISSED,
+  CALL_UNATTRIBUTED,
+  FLAG_DELETED,
+  FLAG_EDITED,
+  FLAG_FORWARDED,
+  KIND_ID,
+} from './columns';
 import { messageRef, topRanked } from './context';
 import type { Accumulator, PassContext } from './context';
 import type {
@@ -165,7 +172,9 @@ export function createCounts(context: PassContext): Accumulator<CountResult> {
   };
 }
 
-export function createCalls(context: PassContext): Accumulator<PersonCalls[]> {
+export function createCalls(
+  context: PassContext,
+): Accumulator<{ people: PersonCalls[]; unattributed: number }> {
   const { columns, people } = context;
   const calls: PersonCalls[] = Array.from({ length: people }, () => ({
     count: 0,
@@ -174,8 +183,14 @@ export function createCalls(context: PassContext): Accumulator<PersonCalls[]> {
     longestSec: 0,
   }));
 
+  let unattributed = 0;
+
   return {
     add(index) {
+      if (columns.callState[index] === CALL_UNATTRIBUTED) {
+        unattributed++;
+        return;
+      }
       const call = calls[columns.author[index]];
       const duration = columns.durationSec[index];
       call.count++;
@@ -183,6 +198,6 @@ export function createCalls(context: PassContext): Accumulator<PersonCalls[]> {
       if (columns.callState[index] === CALL_MISSED) call.missed++;
       if (duration > call.longestSec) call.longestSec = duration;
     },
-    result: () => calls,
+    result: () => ({ people: calls, unattributed }),
   };
 }

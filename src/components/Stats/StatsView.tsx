@@ -211,6 +211,8 @@ export default function StatsView({ stats, timeZone, media, chosenColors, hideQu
     ],
   ];
 
+  const unattributedCalls = stats.unattributedCalls ?? 0;
+
   const callRows: Row[] = [
     [s.callsMade, (p) => number(stats.calls[p].count), (p) => stats.calls[p].count],
     [
@@ -378,7 +380,19 @@ export default function StatsView({ stats, timeZone, media, chosenColors, hideQu
         <MediaRanking stickers={stats.stickers} names={names} media={media} />
 
         <Section title={t.sections.calls}>
-          <PersonTable names={names} rows={callRows} />
+          {unattributedCalls > 0 && (
+            <>
+              <Tiles>
+                <Tile label={s.callsTotal} value={number(unattributedCalls)} />
+              </Tiles>
+              <Typography variant="body2" color="text.secondary">
+                {s.callsNoDetail}
+              </Typography>
+            </>
+          )}
+          {(unattributedCalls === 0 || stats.calls.some(({ count }) => count > 0)) && (
+            <PersonTable names={names} rows={callRows} />
+          )}
         </Section>
 
         <Section title={t.sections.activity}>

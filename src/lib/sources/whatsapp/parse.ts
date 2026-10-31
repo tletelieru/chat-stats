@@ -1,3 +1,4 @@
+import { UNATTRIBUTED_CALL } from '~/lib/model';
 import type { Chat, Message, Participant } from '~/lib/model';
 import { DEFAULT_TIME_ZONE, wallTimeToTs } from '~/lib/time';
 import { matchAndroidHeader } from './android';
@@ -20,6 +21,7 @@ type PendingMessage = {
   header: HeaderMatch;
   author: string;
   body: string;
+  isCall?: boolean;
 };
 
 export type WhatsAppOptions = {
@@ -30,6 +32,7 @@ export type WhatsAppOptions = {
 const LEADING_MARKS = new RegExp('^[\\u200e\\u200f\\ufeff]+');
 const SPACES = new RegExp('[\\u202f\\u00a0]', 'g');
 const LRM = String.fromCharCode(0x200e);
+const CALL_LINE = /^- \[(?:call|llamada)\]$/i;
 const SYSTEM_HEAD =
   /(cambió el|cambió la|changed the|changed this|creó el grupo|created group|añadió a|added|eliminó a|removed)/i;
 
@@ -88,6 +91,11 @@ export function parseWhatsAppText(input: string, options: WhatsAppOptions = {}):
     }
 
     headers.push(header);
+    if (CALL_LINE.test(header.body.trim())) {
+      pending.push({ id: pending.length, header, author: '', body: '', isCall: true });
+      current = null;
+      continue;
+    }
     const split = splitAuthor(header.body);
     current = split ? { id: pending.length, header, author: split.author, body: split.body } : null;
     if (current) pending.push(current);
@@ -96,14 +104,30 @@ export function parseWhatsAppText(input: string, options: WhatsAppOptions = {}):
   const order = detectOrder(headers);
   const participants = new Map<string, Participant>();
 
-  const messages: Message[] = pending.map(({ id, header, author, body }) => {
+  const firstAuthor = pending.find(({ isCall }) => !isCall)?.author;
+
+  const messages = pending.flatMap(({ id, header, author, body, isCall }): Message[] => {
+    if (isCall) {
+      if (firstAuthor === undefined) return [];
+      return [
+        {
+          id: String(id),
+          ts: wallTimeToTs(toWallTime(header, order), timeZone),
+          author: firstAuthor,
+          kind: 'call',
+          callOutcome: UNATTRIBUTED_CALL,
+        },
+      ];
+    }
     if (!participants.has(author)) participants.set(author, { id: author, name: author });
-    return {
-      id: String(id),
-      ts: wallTimeToTs(toWallTime(header, order), timeZone),
-      author,
-      ...classifyBody(body),
-    };
+    return [
+      {
+        id: String(id),
+        ts: wallTimeToTs(toWallTime(header, order), timeZone),
+        author,
+        ...classifyBody(body),
+      },
+    ];
   });
 
   messages.sort((a, b) => a.ts - b.ts);
