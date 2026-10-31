@@ -44,10 +44,11 @@
     "@streamparser/json": "^0.0.22",
     "@vite-pwa/astro": "^1.2.0",
     "astro": "^7.4.1",
-    "date-fns": "^4.1.0",
     "echarts": "^6.0.0",
     "echarts-for-react": "^3.0.2",
     "fflate": "^0.8.2",
+    "html-to-image": "^1.11.13",
+    "jspdf": "^4.2.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "sharp": "^0.35.5",
@@ -75,6 +76,8 @@
     "prettier-plugin-astro": "^1.1.1",
     "typescript": "~6.0.0",
     "typescript-eslint": "^8.72.0",
-    "vitest": "^5.0.5"
+    "vitest": "^5.0.5",
+    "workbox-core": "^7.4.1",
+    "workbox-precaching": "^7.4.1"
   }
 }
