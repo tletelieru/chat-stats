@@ -1,5 +1,5 @@
 import { Box, Grid, Stack, Typography } from '@mui/material';
-import { BoltIcon, ChartIcon, LockIcon } from '~/components/icons';
+import { BoltIcon, ChartIcon, LockIcon, TelegramIcon, WhatsAppIcon } from '~/components/icons';
 import { messages } from '~/i18n/messages';
 import { useMessages } from '~/i18n/react';
 import type { SavedStats } from '~/lib/saved';
@@ -7,6 +7,10 @@ import Dropzone from './Dropzone';
 import SavedList from './SavedList';
 
 const PROMISE_ICONS = [LockIcon, BoltIcon, ChartIcon];
+const GUIDE_LOGOS = {
+  Telegram: { Logo: TelegramIcon, color: '#26a5e4' },
+  WhatsApp: { Logo: WhatsAppIcon, color: '#25d366' },
+};
 const BASE_PATH = import.meta.env.BASE_URL.replace(/\/$/, '');
 
 type Props = {
@@ -78,54 +82,60 @@ export default function Landing({ error, onFiles, onOpenSaved }: Props) {
           {t.howTo.title}
         </Typography>
         <Grid container spacing={2}>
-          {t.howTo.guides.map(({ name, steps, images }) => (
-            <Grid key={name} size={12}>
-              <Box
-                sx={{
-                  p: 2.5,
-                  height: '100%',
-                  borderRadius: 1.5,
-                  border: 1,
-                  borderColor: 'divider',
-                  bgcolor: 'background.paper',
-                }}
-              >
-                <Typography variant="subtitle2" component="h3" gutterBottom>
-                  {name}
-                </Typography>
+          {t.howTo.guides.map(({ name, steps, images }) => {
+            const { Logo, color } = GUIDE_LOGOS[name];
+            return (
+              <Grid key={name} size={12}>
                 <Box
-                  component="ol"
-                  sx={{ m: 0, pl: 2.5, color: 'text.secondary', typography: 'body2' }}
+                  sx={{
+                    p: 2.5,
+                    height: '100%',
+                    borderRadius: 1.5,
+                    border: 1,
+                    borderColor: 'divider',
+                    bgcolor: 'background.paper',
+                  }}
                 >
-                  {steps.map((step) => (
-                    <li key={step}>{step}</li>
-                  ))}
-                </Box>
-                {images && (
+                  <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 1 }}>
+                    <Logo aria-hidden sx={{ color }} />
+                    <Typography variant="subtitle2" component="h3">
+                      {name}
+                    </Typography>
+                  </Stack>
                   <Box
-                    sx={{
-                      mt: 2,
-                      display: 'grid',
-                      gap: 1.5,
-                      alignItems: 'start',
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 210px))',
-                    }}
+                    component="ol"
+                    sx={{ m: 0, pl: 2.5, color: 'text.secondary', typography: 'body2' }}
                   >
-                    {images.map(({ src, alt }) => (
-                      <Box
-                        key={src}
-                        component="img"
-                        src={`${BASE_PATH}/${src}`}
-                        alt={alt}
-                        loading="lazy"
-                        sx={{ width: '100%', height: 'auto', borderRadius: 1 }}
-                      />
+                    {steps.map((step) => (
+                      <li key={step}>{step}</li>
                     ))}
                   </Box>
-                )}
-              </Box>
-            </Grid>
-          ))}
+                  {images && (
+                    <Box
+                      sx={{
+                        mt: 2,
+                        display: 'grid',
+                        gap: 1.5,
+                        alignItems: 'start',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 210px))',
+                      }}
+                    >
+                      {images.map(({ src, alt }) => (
+                        <Box
+                          key={src}
+                          component="img"
+                          src={`${BASE_PATH}/${src}`}
+                          alt={alt}
+                          loading="lazy"
+                          sx={{ width: '100%', height: 'auto', borderRadius: 1 }}
+                        />
+                      ))}
+                    </Box>
+                  )}
+                </Box>
+              </Grid>
+            );
+          })}
         </Grid>
       </Stack>
 

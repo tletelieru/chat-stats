@@ -13,7 +13,9 @@ import { messages } from '~/i18n/messages';
 import { locales } from '~/i18n/locales';
 import type { Locale } from '~/i18n/locales';
 import type { ColorMode } from '~/lib/theme';
-import { ChartIcon, MoonIcon, SunIcon } from './icons';
+import { MoonIcon, SunIcon } from './icons';
+
+const BASE_PATH = import.meta.env.BASE_URL.replace(/\/$/, '');
 
 type Props = {
   locale: Locale;
@@ -30,18 +32,11 @@ export default function Header({ locale, mode, onLocale, onToggleMode, onNewChat
   return (
     <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
       <Box
-        sx={{
-          display: 'grid',
-          placeItems: 'center',
-          width: 36,
-          height: 36,
-          borderRadius: 1,
-          color: '#fff',
-          background: 'linear-gradient(135deg, #3b4fe4, #8ea1ff)',
-        }}
-      >
-        <ChartIcon fontSize="small" />
-      </Box>
+        component="img"
+        src={`${BASE_PATH}/favicon.svg`}
+        alt=""
+        sx={{ width: 36, height: 36, display: 'block' }}
+      />
       <Typography component="p" sx={{ fontWeight: 700, letterSpacing: '-0.02em', flexGrow: 1 }}>
         {t.appName}
       </Typography>

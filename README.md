@@ -86,3 +86,7 @@ through GitHub Actions.
 ## Contributing
 
 Never commit real chat exports. Test fixtures must use invented names and messages.
+
+---
+
+Developed by [tletelieru](https://github.com/tletelieru) · [Site](https://tletelieru.github.io/tletelieru/)
