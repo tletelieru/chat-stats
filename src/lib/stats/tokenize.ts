@@ -49,6 +49,7 @@ const FACES = [
 ];
 const FACE = new RegExp(`${FACE_START}(?:${FACES.join('|')})${FACE_END}`, 'gu');
 const LAUGH_FACE = /^([xX])([dD])[dD]+$/;
+const FACE_WORD = /^[a-z]+$/i;
 const FACE_REPEAT = /([)(\][DPpOoc3Cd|/\\*])\1+$/u;
 
 export function keyboardFacesOf(text: string): string[] {
@@ -99,6 +100,12 @@ function tokenFlags(token: string): number {
   );
 }
 
+const wordsOnly = (text: string) =>
+  text
+    .replace(LINK, ' ')
+    .replace(FACE, (face) => (FACE_WORD.test(face) ? face : ' '))
+    .toLowerCase();
+
 export function tokenizeTexts(texts: string[]): TokenTable {
   const ids = new Map<string, number>();
   const dictionary: string[] = [];
@@ -109,7 +116,7 @@ export function tokenizeTexts(texts: string[]): TokenTable {
   for (let index = 0; index < texts.length; index++) {
     const text = texts[index];
     if (text) {
-      for (const [match] of text.toLowerCase().replace(LINK, ' ').matchAll(TOKEN)) {
+      for (const [match] of wordsOnly(text).matchAll(TOKEN)) {
         let id = ids.get(match);
         if (id === undefined) {
           id = dictionary.length;
