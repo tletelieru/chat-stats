@@ -32,7 +32,7 @@ type Strings = {
     }[];
   };
   privacy: string;
-  footer: { developedBy: string; site: string };
+  footer: { developedBy: string };
   picker: {
     title: string;
     search: string;
@@ -199,7 +199,7 @@ type Strings = {
 const en: Strings = {
   appName: 'Chat Stats',
   tagline: 'Private chat analytics',
-  footer: { developedBy: 'Developed by', site: 'My site' },
+  footer: { developedBy: 'Developed by' },
   newChat: 'New chat',
   toLight: 'Switch to light mode',
   toDark: 'Switch to dark mode',
@@ -480,7 +480,7 @@ const en: Strings = {
 const es: Strings = {
   appName: 'Chat Stats',
   tagline: 'Estadísticas privadas de tus chats',
-  footer: { developedBy: 'Desarrollado por', site: 'Mi sitio' },
+  footer: { developedBy: 'Desarrollado por' },
   newChat: 'Nuevo chat',
   toLight: 'Cambiar a modo claro',
   toDark: 'Cambiar a modo oscuro',
