@@ -137,6 +137,7 @@ type Strings = {
     callsMade: string;
     callsTotal: string;
     callsNoDetail: string;
+    callsEstimated: string;
     totalTime: string;
     missed: string;
     longestCall: string;
@@ -400,6 +401,8 @@ const en: Strings = {
     deleted: 'Deleted',
     callsMade: 'Calls made',
     callsTotal: 'Calls',
+    callsEstimated:
+      'Estimated. WhatsApp phone exports show calls as empty messages, with no duration or call type.',
     callsNoDetail:
       'WhatsApp only records the date of each call, not who called, how long it lasted or if it was video.',
     totalTime: 'Total time',
@@ -685,6 +688,8 @@ const es: Strings = {
     deleted: 'Eliminados',
     callsMade: 'Llamadas hechas',
     callsTotal: 'Llamadas',
+    callsEstimated:
+      'Estimado. Los exports de WhatsApp desde el celular muestran las llamadas como mensajes vacíos, sin duración ni tipo.',
     callsNoDetail:
       'WhatsApp solo registra la fecha de cada llamada, no quién llamó, cuánto duró ni si fue video.',
     totalTime: 'Tiempo total',

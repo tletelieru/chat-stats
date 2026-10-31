@@ -47,6 +47,7 @@ export type Participant = {
 };
 
 export const UNATTRIBUTED_CALL = 'unattributed';
+export const ESTIMATED_CALL = 'estimated';
 
 export type ChatSource = 'telegram' | 'whatsapp';
 

@@ -212,6 +212,7 @@ export default function StatsView({ stats, timeZone, media, chosenColors, hideQu
   ];
 
   const unattributedCalls = stats.unattributedCalls ?? 0;
+  const estimatedCalls = stats.estimatedCalls ?? 0;
 
   const callRows: Row[] = [
     [s.callsMade, (p) => number(stats.calls[p].count), (p) => stats.calls[p].count],
@@ -390,8 +391,16 @@ export default function StatsView({ stats, timeZone, media, chosenColors, hideQu
               </Typography>
             </>
           )}
+          {estimatedCalls > 0 && (
+            <Typography variant="body2" color="text.secondary">
+              {s.callsEstimated}
+            </Typography>
+          )}
           {(unattributedCalls === 0 || stats.calls.some(({ count }) => count > 0)) && (
-            <PersonTable names={names} rows={callRows} />
+            <PersonTable
+              names={names}
+              rows={estimatedCalls > 0 ? callRows.slice(0, 1) : callRows}
+            />
           )}
         </Section>
 

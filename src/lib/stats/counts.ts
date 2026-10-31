@@ -1,6 +1,7 @@
 import { MESSAGE_KINDS } from '~/lib/model';
 import type { MessageKind } from '~/lib/model';
 import {
+  CALL_ESTIMATED,
   CALL_MISSED,
   CALL_UNATTRIBUTED,
   FLAG_DELETED,
@@ -174,7 +175,7 @@ export function createCounts(context: PassContext): Accumulator<CountResult> {
 
 export function createCalls(
   context: PassContext,
-): Accumulator<{ people: PersonCalls[]; unattributed: number }> {
+): Accumulator<{ people: PersonCalls[]; unattributed: number; estimated: number }> {
   const { columns, people } = context;
   const calls: PersonCalls[] = Array.from({ length: people }, () => ({
     count: 0,
@@ -184,6 +185,7 @@ export function createCalls(
   }));
 
   let unattributed = 0;
+  let estimated = 0;
 
   return {
     add(index) {
@@ -191,6 +193,7 @@ export function createCalls(
         unattributed++;
         return;
       }
+      if (columns.callState[index] === CALL_ESTIMATED) estimated++;
       const call = calls[columns.author[index]];
       const duration = columns.durationSec[index];
       call.count++;
@@ -198,6 +201,6 @@ export function createCalls(
       if (columns.callState[index] === CALL_MISSED) call.missed++;
       if (duration > call.longestSec) call.longestSec = duration;
     },
-    result: () => ({ people: calls, unattributed }),
+    result: () => ({ people: calls, unattributed, estimated }),
   };
 }

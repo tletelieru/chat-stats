@@ -1,4 +1,4 @@
-import { UNATTRIBUTED_CALL } from '~/lib/model';
+import { ESTIMATED_CALL, UNATTRIBUTED_CALL } from '~/lib/model';
 import type { Chat, Message, Participant } from '~/lib/model';
 import { DEFAULT_TIME_ZONE, wallTimeToTs } from '~/lib/time';
 import { matchAndroidHeader } from './android';
@@ -33,6 +33,7 @@ const LEADING_MARKS = new RegExp('^[\\u200e\\u200f\\ufeff]+');
 const SPACES = new RegExp('[\\u202f\\u00a0]', 'g');
 const LRM = String.fromCharCode(0x200e);
 const CALL_LINE = /^- \[(?:call|llamada)\]$/i;
+const ALBUM_WINDOW_MS = 120_000;
 const SYSTEM_HEAD =
   /(cambió el|cambió la|changed the|changed this|creó el grupo|created group|añadió a|added|eliminó a|removed)/i;
 
@@ -106,7 +107,15 @@ export function parseWhatsAppText(input: string, options: WhatsAppOptions = {}):
 
   const firstAuthor = pending.find(({ isCall }) => !isCall)?.author;
 
-  const messages = pending.flatMap(({ id, header, author, body, isCall }): Message[] => {
+  const isAlbumHead = (index: number) => {
+    const entry = pending[index];
+    const next = pending[index + 1];
+    if (!next || next.isCall || next.author !== entry.author) return false;
+    const gap = toWallTime(next.header, order) - toWallTime(entry.header, order);
+    return gap <= ALBUM_WINDOW_MS && Boolean(classifyBody(next.body).mediaFile);
+  };
+
+  const messages = pending.flatMap(({ id, header, author, body, isCall }, index): Message[] => {
     if (isCall) {
       if (firstAuthor === undefined) return [];
       return [
@@ -120,6 +129,18 @@ export function parseWhatsAppText(input: string, options: WhatsAppOptions = {}):
       ];
     }
     if (!participants.has(author)) participants.set(author, { id: author, name: author });
+    if (body.trim() === '') {
+      if (isAlbumHead(index)) return [];
+      return [
+        {
+          id: String(id),
+          ts: wallTimeToTs(toWallTime(header, order), timeZone),
+          author,
+          kind: 'call',
+          callOutcome: ESTIMATED_CALL,
+        },
+      ];
+    }
     return [
       {
         id: String(id),
