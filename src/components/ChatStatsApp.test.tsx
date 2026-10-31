@@ -1,10 +1,44 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import userEvent from '@testing-library/user-event';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { SavedStats } from '~/lib/saved';
 import ChatStatsApp from './ChatStatsApp';
 
+vi.mock('~/lib/saved', () => ({
+  listSaved: async (): Promise<SavedStats[]> => [],
+}));
+
+beforeEach(() => localStorage.clear());
+
+beforeAll(() => {
+  vi.stubGlobal(
+    'Worker',
+    class {
+      postMessage() {}
+      terminate() {}
+    },
+  );
+});
+
 describe('ChatStatsApp', () => {
-  it('renders the title', () => {
+  it('renders the title and the import screen', () => {
     render(<ChatStatsApp />);
-    expect(screen.getByRole('heading', { name: 'Chat Stats' })).toBeInTheDocument();
+    expect(screen.getByText('Chat Stats')).toBeInTheDocument();
+    expect(screen.getByTestId('dropzone')).toBeInTheDocument();
+  });
+
+  it('switches language and remembers it', async () => {
+    render(<ChatStatsApp />);
+    await userEvent.click(screen.getByRole('button', { name: 'ES' }));
+    expect(screen.getByText('Suelta aquí la exportación del chat')).toBeInTheDocument();
+    expect(document.documentElement.lang).toBe('es');
+    expect(localStorage.getItem('preferred-lang')).toBe('es');
+  });
+
+  it('toggles the color mode and remembers it', async () => {
+    render(<ChatStatsApp />);
+    await userEvent.click(screen.getByRole('button', { name: /modo oscuro|dark mode/ }));
+    expect(localStorage.getItem('color-mode')).toBe('dark');
+    expect(document.documentElement.style.colorScheme).toBe('dark');
   });
 });

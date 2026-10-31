@@ -1,0 +1,130 @@
+{
+  "name": "Ana Prueba",
+  "type": "personal_chat",
+  "id": 1001,
+  "messages": [
+    {
+      "id": 3,
+      "type": "message",
+      "date": "2026-01-10T10:02:00",
+      "date_unixtime": "1768039320",
+      "from": null,
+      "from_id": "user200",
+      "text": [
+        "mira ",
+        { "type": "link", "text": "https://example.com" },
+        { "type": "bold", "text": " esto" }
+      ],
+      "text_entities": [
+        { "type": "plain", "text": "mira " },
+        { "type": "link", "text": "https://example.com" },
+        { "type": "bold", "text": " esto" }
+      ],
+      "reply_to_message_id": 1,
+      "edited": "2026-01-10T10:03:00",
+      "edited_unixtime": "1768039380"
+    },
+    {
+      "id": 1,
+      "type": "message",
+      "date": "2026-01-10T10:00:00",
+      "date_unixtime": "1768039200",
+      "from": "Ana Prueba",
+      "from_id": "user100",
+      "text": "hola",
+      "text_entities": [{ "type": "plain", "text": "hola" }],
+      "reactions": [
+        {
+          "type": "emoji",
+          "count": 2,
+          "emoji": "😂",
+          "recent": [{ "from": "Beto Demo", "from_id": "user200", "date": "2026-01-10T10:01:00" }]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "message",
+      "date": "2026-01-10T10:01:00",
+      "date_unixtime": "1768039260",
+      "from": "Beto Demo",
+      "from_id": "user200",
+      "text": "",
+      "text_entities": [],
+      "file": "voice_messages/audio_1.ogg",
+      "media_type": "voice_message",
+      "duration_seconds": 42
+    },
+    {
+      "id": 4,
+      "type": "message",
+      "date": "2026-01-10T10:04:00",
+      "date_unixtime": "1768039440",
+      "from": "Ana Prueba",
+      "from_id": "user100",
+      "text": "",
+      "text_entities": [],
+      "photo": "photos/photo_1.jpg",
+      "forwarded_from": "Canal Falso"
+    },
+    {
+      "id": 5,
+      "type": "message",
+      "date": "2026-01-10T10:05:00",
+      "date_unixtime": "1768039500",
+      "from": "Ana Prueba",
+      "from_id": "user100",
+      "text": "",
+      "text_entities": [],
+      "file": "(File not included. Change data exporting settings to download.)",
+      "media_type": "sticker",
+      "sticker_emoji": "😎"
+    },
+    {
+      "id": 6,
+      "type": "service",
+      "date": "2026-01-10T10:06:00",
+      "date_unixtime": "1768039560",
+      "actor": "Beto Demo",
+      "actor_id": "user200",
+      "action": "phone_call",
+      "duration_seconds": 120,
+      "discard_reason": "hangup",
+      "text": "",
+      "text_entities": []
+    },
+    {
+      "id": 7,
+      "type": "service",
+      "date": "2026-01-10T10:07:00",
+      "date_unixtime": "1768039620",
+      "actor": "Ana Prueba",
+      "actor_id": "user100",
+      "action": "pin_message",
+      "text": "",
+      "text_entities": []
+    },
+    {
+      "id": 8,
+      "type": "message",
+      "date": "2026-01-10T10:08:00",
+      "date_unixtime": "1768039680",
+      "from": "Beto Demo",
+      "from_id": "user200",
+      "text": "",
+      "text_entities": [],
+      "file": "files/doc.pdf"
+    },
+    {
+      "id": 9,
+      "type": "message",
+      "date": "2026-01-10T10:09:00",
+      "date_unixtime": "1768039740",
+      "from": "Beto Demo",
+      "from_id": "user200",
+      "text": "",
+      "text_entities": [],
+      "location_information": { "latitude": 1, "longitude": 2 }
+    }
+  ]
+}

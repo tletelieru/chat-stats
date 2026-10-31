@@ -28,4 +28,12 @@ Astro static output, one React island (`client:only="react"`), TypeScript strict
 - Peer ranges lag: keep `overrides` in `package.json`, do not use `legacy-peer-deps`.
 - `eslint-plugin-react` needs an explicit `settings.react.version`.
 - TypeScript stays on 6.x.
+- lint-staged calls tools through `node node_modules/...`: its `tinyexec` cannot spawn Windows `.cmd`
+  shims.
+- `scripts/csp.mjs` adds the CSP meta tag with inline script hashes at build time and must stay
+  before `AstroPWA` in `integrations`, so the precache revision sees the final `index.html`.
+- `trailingSlash: 'always'` keeps the precached app URL as `/chat-stats/`. Offline breaks without it.
+- Unit tests mock `Chart`, so check chart changes against `npm run preview` in a real browser.
+- WhatsApp exports have no timezone: times are read as America/Santiago wall time at import.
+- All UI text lives in `src/i18n/messages.ts` (en and es). Locale and color mode are kept in localStorage.
 - Branches: `feat/*` with PRs to `dev`. `main` and `dev` are protected, merges are manual.
