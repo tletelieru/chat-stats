@@ -50,11 +50,12 @@ describe('ReviewPeople', () => {
   it('offers the default color and passes the chosen one', async () => {
     const onConfirm = vi.fn();
     render(<ReviewPeople chat={chat} onConfirm={onConfirm} />);
-    expect(screen.getByLabelText('Color for Beto')).toHaveValue('#2a78d6');
-    expect(screen.getByLabelText('Color for Ana')).toHaveValue('#eb6834');
-    fireEvent.change(screen.getByLabelText('Color for Ana'), { target: { value: '#ff00aa' } });
+    expect(screen.getByLabelText('Color for Beto')).toHaveAttribute('data-color', '#2a78d6');
+    expect(screen.getByLabelText('Color for Ana')).toHaveAttribute('data-color', '#eb6834');
+    fireEvent.click(screen.getByLabelText('Color for Ana'));
+    fireEvent.click(await screen.findByRole('button', { name: '#e0189c' }));
     await userEvent.click(screen.getByRole('button', { name: 'Show stats' }));
-    expect(onConfirm).toHaveBeenCalledWith({}, {}, { a: '#ff00aa' });
+    expect(onConfirm).toHaveBeenCalledWith({}, {}, { a: '#e0189c' });
   });
 
   it('shows the preview and the unknown media warning', () => {

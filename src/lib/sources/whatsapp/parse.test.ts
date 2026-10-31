@@ -1,6 +1,8 @@
 import { strToU8, zipSync } from 'fflate';
 import { describe, expect, it } from 'vitest';
 import { androidEnUs, androidEs12h, androidEs24h, iosEs } from '~/fixtures/whatsapp/samples';
+import { buildColumns } from '~/lib/stats/columns';
+import { computeStats } from '~/lib/stats/engine';
 import { classifyFileName } from './media';
 import { parseWhatsAppText } from './parse';
 import { readWhatsAppArchive } from './zip';
@@ -65,6 +67,32 @@ describe('parseWhatsAppText', () => {
       timeZone: 'America/Santiago',
     });
     expect(messages[0].ts).toBe(Date.UTC(2026, 0, 15, 15, 0));
+  });
+});
+
+describe('WhatsApp Desktop calls', () => {
+  const desktop = [
+    '[10/30/26, 8:00:00 PM] - [Call]',
+    '[10/30/26, 8:01:00 PM] Ana: hola',
+    '[10/30/26, 8:02:00 PM] - [Call]',
+    '[10/30/26, 8:03:00 PM] Beto: <image omitted>',
+  ].join('\n');
+
+  it('keeps calls without inventing a participant', () => {
+    const { messages, participants } = parseWhatsAppText(desktop, UTC);
+    expect(participants.map(({ id }) => id)).toEqual(['Ana', 'Beto']);
+    expect(messages.filter(({ kind }) => kind === 'call')).toHaveLength(2);
+    expect(messages[0]).toMatchObject({ kind: 'call', callOutcome: 'unattributed' });
+  });
+
+  it('counts them as a total instead of per person', () => {
+    const stats = computeStats(buildColumns(parseWhatsAppText(desktop, UTC)), {
+      gapMs: 3_600_000,
+      timeZone: 'UTC',
+    });
+    expect(stats.unattributedCalls).toBe(2);
+    expect(stats.calls.map(({ count }) => count)).toEqual([0, 0]);
+    expect(stats.overview.messages).toBe(2);
   });
 });
 

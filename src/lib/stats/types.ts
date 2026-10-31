@@ -170,6 +170,7 @@ export type StatsResult = {
   media: PersonMedia[];
   flags: PersonFlags[];
   calls: PersonCalls[];
+  unattributedCalls?: number;
   reactions: Reactions;
   stickers: Stickers;
   activity: Activity;
