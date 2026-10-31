@@ -9,6 +9,7 @@ export type SavedStats = {
   savedAt: number;
   timeZone: string;
   stats: StatsResult;
+  thumbs?: Record<string, string>;
 };
 
 function stripPair(pair: ResponsePair | null): ResponsePair | null {

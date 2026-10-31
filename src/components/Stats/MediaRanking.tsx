@@ -18,7 +18,7 @@ function Thumbnail({ itemKey, url }: { itemKey: string; url?: string }) {
   const label = shortName(itemKey);
   const size = { width: THUMB_SIZE, height: THUMB_SIZE, objectFit: 'contain' } as const;
 
-  if (url && isVideo(itemKey)) {
+  if (url && isVideo(itemKey) && !url.startsWith('data:image')) {
     return <video src={url} muted loop autoPlay playsInline style={size} aria-label={label} />;
   }
   if (url) return <img src={url} alt={label} style={size} />;

@@ -310,6 +310,13 @@ describe('keyboard faces', () => {
     expect(keyboardFacesOf(text)).toEqual([]);
   });
 
+  it('keeps symbol faces out of words but not xd or owo', () => {
+    expect(tokenizeTexts(['yeah :c hola D: :) c:']).dictionary).toEqual(['yeah', 'hola']);
+    const table = tokenizeTexts(['xd owo']);
+    expect(table.dictionary).toEqual(['xd', 'owo']);
+    expect(table.flags[0] & TOKEN_LAUGH).toBeTruthy();
+  });
+
   it('groups mixed case laughs by their first letters', () => {
     expect(keyboardFacesOf('xDd xDDD XDd')).toEqual(['xD', 'xD', 'XD']);
   });

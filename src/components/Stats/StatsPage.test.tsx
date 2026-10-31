@@ -239,6 +239,18 @@ describe('MediaRanking', () => {
     expect(screen.queryByText(/export folder/)).not.toBeInTheDocument();
   });
 
+  it('shows a saved GIF preview as an image', () => {
+    const { container } = render(
+      <MediaRanking
+        names={['Ana', 'Beto']}
+        media={{ ratio: 0, thumbs: { [key]: 'data:image/webp;base64,AAAA' } }}
+        stickers={{ ...base, overall: [{ key, count: 1 }], perPerson: [[], []] }}
+      />,
+    );
+    expect(container.querySelector('img')).toHaveAttribute('src', 'data:image/webp;base64,AAAA');
+    expect(container.querySelector('video')).toBeNull();
+  });
+
   it('skips the per person list when only one person used them', () => {
     render(
       <MediaRanking

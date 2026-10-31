@@ -269,7 +269,7 @@ const en: Strings = {
     ],
   },
   privacy:
-    'Nothing is uploaded, and nothing is stored unless you save stats. Saved stats keep top words and emoji, never whole messages.',
+    'Nothing is uploaded, because there is no server. Nothing is stored unless you save stats, and those stay only in this browser. Saved stats keep top words, phrases, emoji and small sticker and GIF previews, never whole conversations.',
   picker: {
     title: 'Pick a chat',
     search: 'Search chats',
@@ -550,7 +550,7 @@ const es: Strings = {
     ],
   },
   privacy:
-    'No se sube nada y no se guarda nada, salvo que guardes las estadísticas. Estas conservan palabras y emojis frecuentes, nunca mensajes completos.',
+    'No se sube nada, porque no hay servidor. Nada se guarda salvo que guardes las estadísticas, y quedan solo en este navegador. Conservan palabras, frases y emojis frecuentes y miniaturas de stickers y GIFs, nunca conversaciones completas.',
   picker: {
     title: 'Elige un chat',
     search: 'Buscar chats',
