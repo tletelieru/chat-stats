@@ -25,9 +25,14 @@ type Strings = {
   };
   howTo: {
     title: string;
-    guides: { name: string; steps: string[]; images?: { src: string; alt: string }[] }[];
+    guides: {
+      name: 'Telegram' | 'WhatsApp';
+      steps: string[];
+      images?: { src: string; alt: string }[];
+    }[];
   };
   privacy: string;
+  footer: { developedBy: string; site: string };
   picker: {
     title: string;
     search: string;
@@ -137,6 +142,7 @@ type Strings = {
     callsMade: string;
     callsTotal: string;
     callsNoDetail: string;
+    callsEstimated: string;
     totalTime: string;
     missed: string;
     longestCall: string;
@@ -193,6 +199,7 @@ type Strings = {
 const en: Strings = {
   appName: 'Chat Stats',
   tagline: 'Private chat analytics',
+  footer: { developedBy: 'Developed by', site: 'My site' },
   newChat: 'New chat',
   toLight: 'Switch to light mode',
   toDark: 'Switch to dark mode',
@@ -400,6 +407,8 @@ const en: Strings = {
     deleted: 'Deleted',
     callsMade: 'Calls made',
     callsTotal: 'Calls',
+    callsEstimated:
+      'Estimated. WhatsApp phone exports show calls as empty messages, with no duration or call type.',
     callsNoDetail:
       'WhatsApp only records the date of each call, not who called, how long it lasted or if it was video.',
     totalTime: 'Total time',
@@ -471,6 +480,7 @@ const en: Strings = {
 const es: Strings = {
   appName: 'Chat Stats',
   tagline: 'Estadísticas privadas de tus chats',
+  footer: { developedBy: 'Desarrollado por', site: 'Mi sitio' },
   newChat: 'Nuevo chat',
   toLight: 'Cambiar a modo claro',
   toDark: 'Cambiar a modo oscuro',
@@ -685,6 +695,8 @@ const es: Strings = {
     deleted: 'Eliminados',
     callsMade: 'Llamadas hechas',
     callsTotal: 'Llamadas',
+    callsEstimated:
+      'Estimado. Los exports de WhatsApp desde el celular muestran las llamadas como mensajes vacíos, sin duración ni tipo.',
     callsNoDetail:
       'WhatsApp solo registra la fecha de cada llamada, no quién llamó, cuánto duró ni si fue video.',
     totalTime: 'Tiempo total',

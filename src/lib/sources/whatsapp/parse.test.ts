@@ -96,6 +96,40 @@ describe('WhatsApp Desktop calls', () => {
   });
 });
 
+describe('WhatsApp phone calls', () => {
+  const phone = [
+    '10/28/26, 7:41 PM - Ana: ',
+    '10/28/26, 7:41 PM - Ana: VID-20261028-WA0001.mp4 (file attached)',
+    '10/28/26, 7:57 PM - Beto: ',
+    '10/30/26, 3:33 PM - Beto: <Media omitted>',
+    '10/31/26, 12:10 AM - Ana: donde',
+    '10/31/26, 12:18 AM - Beto: ',
+    '10/31/26, 12:19 AM - Ana: ',
+  ].join('\n');
+
+  it('reads empty messages as estimated calls by that person', () => {
+    const { messages } = parseWhatsAppText(phone, UTC);
+    const calls = messages.filter(({ kind }) => kind === 'call');
+    expect(calls.map(({ author }) => author)).toEqual(['Beto', 'Beto', 'Ana']);
+    expect(calls[0].callOutcome).toBe('estimated');
+  });
+
+  it('does not count the empty line before an attachment as a call', () => {
+    const { messages } = parseWhatsAppText(phone, UTC);
+    expect(messages[0]).toMatchObject({ author: 'Ana', kind: 'video' });
+  });
+
+  it('keeps calls out of messages and counts them per person', () => {
+    const stats = computeStats(buildColumns(parseWhatsAppText(phone, UTC)), {
+      gapMs: 3_600_000,
+      timeZone: 'UTC',
+    });
+    expect(stats.estimatedCalls).toBe(3);
+    expect(stats.calls.map(({ count }) => count)).toEqual([1, 2]);
+    expect(stats.overview.messages).toBe(3);
+  });
+});
+
 describe('classifyFileName', () => {
   it.each([
     ['IMG-1.jpg', 'photo'],
