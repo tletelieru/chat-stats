@@ -44,29 +44,26 @@ export default function ReviewPeople({ chat, onConfirm }: Props) {
       </Stack>
 
       {chat.people.map(({ id, name }, person) => (
-        <Stack
-          key={id}
-          direction={{ xs: 'column', sm: 'row' }}
-          spacing={1}
-          sx={{ alignItems: { sm: 'center' } }}
-        >
-          <ColorDot
-            name={name}
-            size={32}
-            color={colors[id] ?? defaults[person]}
-            onChange={(color) => setColors({ ...colors, [id]: color })}
-          />
-          <TextField
-            size="small"
-            fullWidth
-            label={t.nameFor(name)}
-            value={names[id] ?? name}
-            onChange={(event) => setNames({ ...names, [id]: event.target.value })}
-          />
+        <Stack key={id} direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+          <Stack direction="row" sx={{ alignItems: 'center', flexGrow: 1, flexBasis: 0 }}>
+            <ColorDot
+              name={name}
+              size={32}
+              color={colors[id] ?? defaults[person]}
+              onChange={(color) => setColors({ ...colors, [id]: color })}
+            />
+            <TextField
+              size="small"
+              fullWidth
+              label={t.nameFor(name)}
+              value={names[id] ?? name}
+              onChange={(event) => setNames({ ...names, [id]: event.target.value })}
+            />
+          </Stack>
           <TextField
             select
             size="small"
-            fullWidth
+            sx={{ flexGrow: 1, flexBasis: 0 }}
             label={t.mergeInto(name)}
             value={aliases[id] ?? ''}
             onChange={(event) => {

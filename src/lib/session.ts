@@ -100,17 +100,18 @@ export function createSession(post: (response: WorkerResponse) => void) {
     columns = original;
     cache = new Map();
     const names = new Map(chat.participants.map(({ id, name }) => [id, name]));
+    const counts = original.people.map(
+      ({ id }) =>
+        chat.messages.filter(
+          ({ author, kind }) => author === id && kind !== 'service' && kind !== 'call',
+        ).length,
+    );
     post({
       type: 'ready',
       name: chat.name,
       source: chat.source,
-      messageCount: chat.messages.length,
-      counts: original.people.map(
-        ({ id }) =>
-          chat.messages.filter(
-            ({ author, kind }) => author === id && kind !== 'service' && kind !== 'call',
-          ).length,
-      ),
+      messageCount: counts.reduce((sum, count) => sum + count, 0),
+      counts,
       unknownMedia: chat.messages.filter(({ kind }) => kind === 'unknown_media').length,
       people: original.people,
       preview: chat.messages.slice(0, PREVIEW_MESSAGES).map((message) => ({

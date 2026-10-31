@@ -1,5 +1,5 @@
 import { createActivity } from './activity';
-import { KIND_ID, lowerBound } from './columns';
+import { CALL_UNATTRIBUTED, KIND_ID, lowerBound } from './columns';
 import type { Columns } from './columns';
 import { DAY_MS, createContext } from './context';
 import { createConversations } from './conversations';
@@ -35,7 +35,9 @@ export function computeStats(columns: Columns, filter: Filter): StatsResult {
     const included = person === undefined || author[index] === person;
 
     if (messageKind === CALL) {
-      if (included) calls.add(index, prev, false);
+      if (included || columns.callState[index] === CALL_UNATTRIBUTED) {
+        calls.add(index, prev, false);
+      }
       continue;
     }
 
@@ -56,6 +58,7 @@ export function computeStats(columns: Columns, filter: Filter): StatsResult {
   const countResult = counts.result();
   const activityResult = activity.result();
   const totals = countResult.totals;
+  const callResult = calls.result();
   const firstDay = activityResult.days[0]?.day;
   const lastDay = activityResult.days.at(-1)?.day;
 
@@ -79,7 +82,8 @@ export function computeStats(columns: Columns, filter: Filter): StatsResult {
     replies: countResult.replies,
     media: countResult.media,
     flags: countResult.flags,
-    calls: calls.result(),
+    calls: callResult.people,
+    unattributedCalls: callResult.unattributed,
     reactions: countResult.reactions,
     stickers: countResult.stickers,
     activity: activityResult,

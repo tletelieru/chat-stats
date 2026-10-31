@@ -80,7 +80,7 @@ describe('createSession', () => {
       files: [fileOf('result.json', JSON.stringify(single, null, 1))],
     });
     expect(find('error')).toBeUndefined();
-    expect(find('ready')).toMatchObject({ name: 'Ana Prueba', messageCount: 9 });
+    expect(find('ready')).toMatchObject({ name: 'Ana Prueba', messageCount: 7 });
     expect(find('ready')?.preview).toHaveLength(5);
   });
 

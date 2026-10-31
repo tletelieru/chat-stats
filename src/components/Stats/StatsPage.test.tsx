@@ -91,12 +91,16 @@ describe('toFilter', () => {
 });
 
 describe('person colors', () => {
-  it('defaults to the palette and accepts a custom color', () => {
+  it('defaults to the palette and accepts a swatch or a custom color', async () => {
     render(<StatsPage chat={chat} stats={stats} onCompute={vi.fn()} />);
-    const [swatch] = screen.getAllByLabelText('Color for Ana Prueba');
-    expect(swatch).toHaveValue('#222222');
-    fireEvent.change(swatch, { target: { value: '#ff00aa' } });
-    expect(screen.getAllByLabelText('Color for Ana Prueba')[0]).toHaveValue('#ff00aa');
+    const dot = () => screen.getAllByLabelText('Color for Ana Prueba')[0];
+    expect(dot()).toHaveAttribute('data-color', '#222222');
+    fireEvent.click(dot());
+    fireEvent.click(await screen.findByRole('button', { name: '#e0189c' }));
+    expect(dot()).toHaveAttribute('data-color', '#e0189c');
+    fireEvent.click(dot());
+    fireEvent.change(await screen.findByLabelText('Custom'), { target: { value: '#ff00aa' } });
+    expect(dot()).toHaveAttribute('data-color', '#ff00aa');
   });
 });
 
@@ -334,8 +338,14 @@ describe('favorites in highlights', () => {
 describe('chosen colors', () => {
   it('starts from the colors picked before the stats', () => {
     render(<StatsView stats={stats} timeZone="UTC" chosenColors={{ ana: '#ff00aa' }} />);
-    expect(screen.getAllByLabelText('Color for Ana Prueba')[0]).toHaveValue('#ff00aa');
-    expect(screen.getAllByLabelText('Color for Beto Demo')[0]).toHaveValue('#111111');
+    expect(screen.getAllByLabelText('Color for Ana Prueba')[0]).toHaveAttribute(
+      'data-color',
+      '#ff00aa',
+    );
+    expect(screen.getAllByLabelText('Color for Beto Demo')[0]).toHaveAttribute(
+      'data-color',
+      '#111111',
+    );
   });
 });
 

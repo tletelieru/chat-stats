@@ -1,4 +1,4 @@
-import { MESSAGE_KINDS } from '~/lib/model';
+import { MESSAGE_KINDS, UNATTRIBUTED_CALL } from '~/lib/model';
 import type { Chat, MessageKind, Participant } from '~/lib/model';
 import { countUpperCase, keyboardFacesOf, tokenizeTexts } from './tokenize';
 import type { TokenTable } from './tokenize';
@@ -16,6 +16,7 @@ export const KIND_ID = Object.fromEntries(MESSAGE_KINDS.map((kind, id) => [kind,
 
 const MISSED_CALLS = new Set(['missed', 'busy', 'declined']);
 export const CALL_MISSED = 1;
+export const CALL_UNATTRIBUTED = 2;
 
 export type Columns = {
   size: number;
@@ -103,6 +104,7 @@ export function buildColumns(chat: Chat): Columns {
     if (message.callOutcome && MISSED_CALLS.has(message.callOutcome)) {
       callState[index] = CALL_MISSED;
     }
+    if (message.callOutcome === UNATTRIBUTED_CALL) callState[index] = CALL_UNATTRIBUTED;
 
     if (message.kind === 'sticker' || message.kind === 'gif') {
       const key = message.mediaFile ?? message.stickerEmoji ?? `(${message.kind})`;

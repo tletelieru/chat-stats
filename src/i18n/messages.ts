@@ -135,6 +135,8 @@ type Strings = {
     forwarded: string;
     deleted: string;
     callsMade: string;
+    callsTotal: string;
+    callsNoDetail: string;
     totalTime: string;
     missed: string;
     longestCall: string;
@@ -166,6 +168,7 @@ type Strings = {
     replyTo: (name: string) => string;
     other: string;
     colorFor: (name: string) => string;
+    customColor: string;
     gif: string;
     sticker: string;
     previewHint: string;
@@ -279,7 +282,7 @@ const en: Strings = {
   review: {
     summary: (messages, people) => `${messages} messages, ${people} participants`,
     unknownMedia: (count) =>
-      `${count} media messages have an unknown type. Re-export the chat with media to classify them.`,
+      `${count} media messages have an unknown type. To classify them, export the chat from your phone with media included.`,
     preview: 'First messages',
     participants: 'Participants',
     nameFor: (name) => `Name for ${name}`,
@@ -396,6 +399,9 @@ const en: Strings = {
     forwarded: 'Forwarded',
     deleted: 'Deleted',
     callsMade: 'Calls made',
+    callsTotal: 'Calls',
+    callsNoDetail:
+      'WhatsApp only records the date of each call, not who called, how long it lasted or if it was video.',
     totalTime: 'Total time',
     missed: 'Missed or declined',
     longestCall: 'Longest call',
@@ -427,6 +433,7 @@ const en: Strings = {
     replyTo: (name) => `Most used as a reply to ${name}`,
     other: 'Other',
     colorFor: (name) => `Color for ${name}`,
+    customColor: 'Custom',
     gif: 'GIF',
     sticker: 'Sticker',
     previewHint: 'Choose the export folder instead of result.json to see previews.',
@@ -560,7 +567,7 @@ const es: Strings = {
   review: {
     summary: (messages, people) => `${messages} mensajes, ${people} participantes`,
     unknownMedia: (count) =>
-      `${count} mensajes multimedia tienen un tipo desconocido. Vuelve a exportar el chat con archivos multimedia para clasificarlos.`,
+      `${count} mensajes multimedia tienen un tipo desconocido. Para clasificarlos, exporta el chat desde tu celular incluyendo los archivos.`,
     preview: 'Primeros mensajes',
     participants: 'Participantes',
     nameFor: (name) => `Nombre para ${name}`,
@@ -677,6 +684,9 @@ const es: Strings = {
     forwarded: 'Reenviados',
     deleted: 'Eliminados',
     callsMade: 'Llamadas hechas',
+    callsTotal: 'Llamadas',
+    callsNoDetail:
+      'WhatsApp solo registra la fecha de cada llamada, no quién llamó, cuánto duró ni si fue video.',
     totalTime: 'Tiempo total',
     missed: 'Perdidas o rechazadas',
     longestCall: 'Llamada más larga',
@@ -708,6 +718,7 @@ const es: Strings = {
     replyTo: (name) => `Más usado como respuesta a ${name}`,
     other: 'Otros',
     colorFor: (name) => `Color de ${name}`,
+    customColor: 'Personalizado',
     gif: 'GIF',
     sticker: 'Sticker',
     previewHint: 'Elige la carpeta exportada en vez de result.json para ver las vistas previas.',
