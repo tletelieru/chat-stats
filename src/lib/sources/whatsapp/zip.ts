@@ -33,7 +33,7 @@ export function readWhatsAppArchive(bytes: Uint8Array): WhatsAppArchive {
 
   const paths = Object.keys(files);
   const chatPath = paths.find((path) => baseName(path) === '_chat.txt') ?? paths[0];
-  if (!chatPath) throw new Error('No chat text file found in the archive');
+  if (!chatPath) throw new Error('no-chat-file');
 
   return {
     name: CHAT_NAME.exec(baseName(chatPath))?.[1],

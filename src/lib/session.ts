@@ -27,6 +27,16 @@ export type PreviewMessage = {
   text: string;
 };
 
+export const ERROR_CODES = [
+  'no-chats',
+  'no-chat-file',
+  'html-export',
+  'unsupported',
+  'unreadable',
+] as const;
+export type ErrorCode = (typeof ERROR_CODES)[number];
+export type ProgressStep = 'opening' | 'listing' | 'parsing' | 'indexing';
+
 export type WorkerRequest =
   | { type: 'open'; files: File[] }
   | { type: 'pick'; index: number }
@@ -35,13 +45,14 @@ export type WorkerRequest =
   | { type: 'hashMedia' };
 
 export type WorkerResponse =
-  | { type: 'progress'; ratio: number; label: string }
+  | { type: 'progress'; ratio: number; step: ProgressStep }
   | { type: 'chats'; chats: ChatSummary[] }
   | {
       type: 'ready';
       name: string;
       source: Chat['source'];
       messageCount: number;
+      counts: number[];
       unknownMedia: number;
       people: Participant[];
       preview: PreviewMessage[];
@@ -49,7 +60,7 @@ export type WorkerResponse =
   | { type: 'stats'; runId: number; stats: StatsResult }
   | { type: 'mediaProgress'; ratio: number }
   | { type: 'media'; merged: boolean; thumbs: Record<string, Blob> }
-  | { type: 'error'; message: string };
+  | { type: 'error'; code: ErrorCode };
 
 const MIME_TYPES: Record<string, string> = {
   gif: 'image/gif',
@@ -80,11 +91,11 @@ export function createSession(post: (response: WorkerResponse) => void) {
   let cache = new Map<string, StatsResult>();
   let latestRun = 0;
 
-  const progress = (label: string) => (bytes: number) =>
-    post({ type: 'progress', label, ratio: file?.size ? bytes / file.size : 0 });
+  const progress = (step: ProgressStep) => (bytes: number) =>
+    post({ type: 'progress', step, ratio: file?.size ? bytes / file.size : 0 });
 
   const load = (chat: Chat) => {
-    post({ type: 'progress', ratio: 1, label: 'Indexing messages' });
+    post({ type: 'progress', ratio: 1, step: 'indexing' });
     original = buildColumns(chat);
     columns = original;
     cache = new Map();
@@ -94,6 +105,12 @@ export function createSession(post: (response: WorkerResponse) => void) {
       name: chat.name,
       source: chat.source,
       messageCount: chat.messages.length,
+      counts: original.people.map(
+        ({ id }) =>
+          chat.messages.filter(
+            ({ author, kind }) => author === id && kind !== 'service' && kind !== 'call',
+          ).length,
+      ),
       unknownMedia: chat.messages.filter(({ kind }) => kind === 'unknown_media').length,
       people: original.people,
       preview: chat.messages.slice(0, PREVIEW_MESSAGES).map((message) => ({
@@ -106,8 +123,8 @@ export function createSession(post: (response: WorkerResponse) => void) {
   };
 
   const pick = async (index: number) => {
-    if (!file) throw new Error('No file opened');
-    const raw = await readTelegramChat(file.stream(), index, progress('Parsing messages'));
+    if (!file) throw new Error('unreadable');
+    const raw = await readTelegramChat(file.stream(), index, progress('parsing'));
     load(normalizeTelegramChat(raw));
   };
 
@@ -163,6 +180,12 @@ export function createSession(post: (response: WorkerResponse) => void) {
 
   const open = async (files: File[]) => {
     const next = pickPrimary(files);
+    if (
+      !/\.(json|txt|zip)$/i.test(next.name) &&
+      files.some(({ name }) => /^messages\d*\.html$/i.test(name))
+    ) {
+      throw new Error('html-export');
+    }
     file = next;
     siblings = files;
     archive = null;
@@ -172,8 +195,8 @@ export function createSession(post: (response: WorkerResponse) => void) {
     const format = detectFormat(next.name, head);
 
     if (format === 'telegram-json') {
-      const chats = await scanTelegram(next.stream(), progress('Reading chat list'));
-      if (chats.length === 0) throw new Error('No chats found in this file');
+      const chats = await scanTelegram(next.stream(), progress('listing'));
+      if (chats.length === 0) throw new Error('no-chats');
       if (chats.length === 1) await pick(chats[0].index);
       else post({ type: 'chats', chats });
     } else if (format === 'whatsapp-txt') {
@@ -183,7 +206,7 @@ export function createSession(post: (response: WorkerResponse) => void) {
       const contents = readWhatsAppArchive(archive);
       load(parseWhatsAppText(contents.text, { name: contents.name }));
     } else {
-      throw new Error('Unsupported file. Use a Telegram result.json or a WhatsApp .txt or .zip');
+      throw new Error('unsupported');
     }
   };
 
@@ -212,10 +235,8 @@ export function createSession(post: (response: WorkerResponse) => void) {
           setTimeout(() => compute(request.runId, request.filter), 0);
         }
       } catch (error) {
-        post({
-          type: 'error',
-          message: error instanceof Error ? error.message : 'Could not read this file',
-        });
+        const code = ERROR_CODES.find((known) => error instanceof Error && error.message === known);
+        post({ type: 'error', code: code ?? 'unreadable' });
       }
     },
   };

@@ -5,7 +5,14 @@ import { createOffsetCache, utcOffsetMs, wallTimeToTs } from '~/lib/time';
 import { applyPeople, buildColumns, lowerBound } from './columns';
 import { computeStats, createStatsCache } from './engine';
 import { percentile, quickselect } from './quickselect';
-import { tokenizeTexts } from './tokenize';
+import {
+  TOKEN_LAUGH,
+  TOKEN_STOPWORD,
+  countUpperCase,
+  isKeyboardSmash,
+  keyboardFacesOf,
+  tokenizeTexts,
+} from './tokenize';
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
@@ -109,6 +116,31 @@ describe('computeStats on a hand-checked chat', () => {
   });
 });
 
+describe('explicit replies', () => {
+  it('ignores replies to your own message', () => {
+    const result = computeStats(
+      buildColumns(
+        chat([msg(1, 0, 'a'), msg(2, 1, 'a', { replyTo: '1' }), msg(3, 2, 'b', { replyTo: '1' })]),
+      ),
+      FILTER,
+    );
+    expect(result.replies.sent).toEqual([0, 1]);
+    expect(result.replies.received).toEqual([1, 0]);
+    expect(result.replies.top[0].count).toBe(1);
+  });
+});
+
+describe('same-second replies', () => {
+  it('does not report 0 seconds as the shortest response', () => {
+    const result = computeStats(
+      buildColumns(chat([msg(1, 0, 'a'), msg(2, 0, 'b'), msg(3, 1, 'a'), msg(4, 3, 'b')])),
+      FILTER,
+    );
+    expect(result.responses[1].shortest?.ms).toBe(2 * MINUTE);
+    expect(result.responses[1].count).toBe(2);
+  });
+});
+
 describe('filters', () => {
   const columns = buildColumns(sample);
 
@@ -185,6 +217,191 @@ describe('timezones', () => {
   });
 });
 
+describe('repeated phrases', () => {
+  const phrases = (texts: string[]) => {
+    const messages = texts.map((text, index) => msg(index, index, 'a', { text }));
+    return computeStats(buildColumns(chat(messages)), FILTER).words[0];
+  };
+
+  it('finds the top two and three word phrases', () => {
+    const result = phrases(['vamos al cine hoy', 'vamos al cine mañana', 'vamos al cine']);
+    expect(result.pairs[0]).toEqual({ key: 'vamos al', count: 3 });
+    expect(result.triples[0]).toEqual({ key: 'vamos al cine', count: 3 });
+  });
+
+  it('needs at least two repeats', () => {
+    const result = phrases(['una sola frase distinta']);
+    expect(result.pairs).toEqual([]);
+    expect(result.triples).toEqual([]);
+  });
+
+  it('does not cross messages', () => {
+    expect(phrases(['hola', 'amigo', 'hola', 'amigo']).pairs).toEqual([]);
+  });
+
+  it('skips phrases made only of stopwords', () => {
+    expect(phrases(['in the', 'in the', 'of the way', 'of the way']).pairs).toEqual([
+      { key: 'the way', count: 2 },
+    ]);
+  });
+
+  it('breaks phrases at emojis and laughs', () => {
+    expect(phrases(['hola 😂 amigo', 'hola 😂 amigo']).pairs).toEqual([]);
+    expect(phrases(['hola jajaja amigo', 'hola jajaja amigo']).pairs).toEqual([]);
+  });
+});
+
+describe('keyboard faces', () => {
+  it.each([
+    '>:(',
+    ':(',
+    '):',
+    ':)',
+    '(:',
+    ':D',
+    'D:',
+    'xd',
+    'XD',
+    'xD',
+    ':c',
+    'c:',
+    ':o',
+    ':O',
+    'owo',
+    'Owo',
+    'OwO',
+    'uwu',
+    'UwU',
+    ':3',
+    ':p',
+    ':P',
+    ';)',
+    ":'(",
+    ':/',
+    '=)',
+    '^^',
+    '^_^',
+    'T_T',
+    '-_-',
+    '._.',
+    '>.<',
+    'o.o',
+    'O_O',
+    '<3',
+  ])('%s is a face', (face) => {
+    expect(keyboardFacesOf(`hola ${face} chao`)).toEqual([face]);
+  });
+
+  it.each([
+    '10:30',
+    'C:\\Users',
+    'c:/temp',
+    'https://example.com/a:)b',
+    '(hola): nota',
+    'abc: nota',
+    'a:b',
+    '1:1',
+    'nota: esto',
+    'mixed',
+    'word',
+    'foo.on',
+    '(1)',
+  ])('%s has no face', (text) => {
+    expect(keyboardFacesOf(text)).toEqual([]);
+  });
+
+  it('groups mixed case laughs by their first letters', () => {
+    expect(keyboardFacesOf('xDd xDDD XDd')).toEqual(['xD', 'xD', 'XD']);
+  });
+
+  it('groups repeated mouths and counts per person', () => {
+    expect(keyboardFacesOf('no :((( xddd :)) ')).toEqual([':(', 'xd', ':)']);
+    const result = computeStats(
+      buildColumns(chat([msg(1, 0, 'a', { text: ':( :(( xd' }), msg(2, 1, 'b', { text: 'hola' })])),
+      FILTER,
+    );
+    expect(result.words[0].faceCount).toBe(3);
+    expect(result.words[0].faces[0]).toEqual({ key: ':(', count: 2 });
+    expect(result.words[1].faces).toEqual([]);
+  });
+});
+
+describe('keyboard smash laughs', () => {
+  it.each([
+    'hjhjsdf',
+    'jkjkdfjkds',
+    'jksdfjks',
+    'jkdfk',
+    'asjkdhaskjd',
+    'kkkk',
+    'lol',
+    'lmao',
+    'lmfao',
+  ])('%s is a laugh', (word) => {
+    const table = tokenizeTexts([word]);
+    expect(table.flags[0] & TOKEN_LAUGH).toBeTruthy();
+  });
+
+  it.each(['flask', 'shall', 'glass', 'flash', 'salad', 'jack', 'kafka', 'falda', 'hola', 'jk'])(
+    '%s is not a laugh',
+    (word) => {
+      expect(isKeyboardSmash(word)).toBe(false);
+      expect(tokenizeTexts([word]).flags[0] & TOKEN_LAUGH).toBeFalsy();
+    },
+  );
+});
+
+describe('phone keyboard smash', () => {
+  it.each(['dndjd', 'fjfnfn', 'bdndnd', 'kfnfkfjrks'])('%s is a laugh', (word) => {
+    expect(isKeyboardSmash(word)).toBe(true);
+  });
+
+  it.each(['csmmm', 'wtfff', 'whyyyy', 'shhhh', 'grrrr'])('%s is not a laugh', (word) => {
+    expect(isKeyboardSmash(word)).toBe(false);
+  });
+});
+
+describe('uppercase', () => {
+  it('counts uppercase words and whole uppercase messages', () => {
+    expect(countUpperCase('QUE ES ESTO')).toEqual({ words: 3, isMessage: true });
+    expect(countUpperCase('dijo NO y LOL')).toEqual({ words: 2, isMessage: false });
+  });
+
+  it('ignores single capitals, normal sentences and links', () => {
+    expect(countUpperCase('I am A person')).toEqual({ words: 0, isMessage: false });
+    expect(countUpperCase('Hola Ana')).toEqual({ words: 0, isMessage: false });
+    expect(countUpperCase('MIRA https://EXAMPLE.com/ABC')).toEqual({ words: 1, isMessage: true });
+    expect(countUpperCase('123 !!')).toEqual({ words: 0, isMessage: false });
+  });
+
+  it('ranks the most shouted word and skips stopwords', () => {
+    const result = computeStats(
+      buildColumns(
+        chat([
+          msg(1, 0, 'a', { text: 'THE CINE' }),
+          msg(2, 1, 'a', { text: 'mira CINE y NUNCA' }),
+          msg(3, 2, 'b', { text: 'nada en mayúsculas' }),
+        ]),
+      ),
+      FILTER,
+    );
+    expect(result.words[0].shouted[0]).toEqual({ key: 'CINE', count: 2 });
+    expect(result.words[0].shouted.map(({ key }) => key)).not.toContain('THE');
+    expect(result.words[1].shouted).toEqual([]);
+  });
+
+  it('adds them per person', () => {
+    const result = computeStats(
+      buildColumns(
+        chat([msg(1, 0, 'a', { text: 'NO QUIERO' }), msg(2, 1, 'b', { text: 'ok NO' })]),
+      ),
+      FILTER,
+    );
+    expect(result.words[0]).toMatchObject({ upperMessages: 1, upperWords: 2 });
+    expect(result.words[1]).toMatchObject({ upperMessages: 0, upperWords: 1 });
+  });
+});
+
 describe('helpers', () => {
   it('quickselect matches a sorted array', () => {
     const values = Float64Array.from({ length: 1001 }, (_, index) => (index * 7919) % 1009);
@@ -192,6 +409,17 @@ describe('helpers', () => {
     expect(quickselect(values.slice(), 500)).toBe(sorted[500]);
     expect(percentile(values.slice(), 0.9)).toBe(sorted[900]);
     expect(percentile(new Float64Array(), 0.5)).toBeNull();
+  });
+
+  it('ignores links when tokenizing', () => {
+    const table = tokenizeTexts(['mira https://www.tiktok.com/@a/video/1 esto www.example.com']);
+    expect(table.dictionary).toEqual(['mira', 'esto']);
+  });
+
+  it('treats contractions as stopwords with either apostrophe', () => {
+    const table = tokenizeTexts(["don't don’t dont cine"]);
+    const stopwords = table.dictionary.filter((_, id) => table.flags[id] & TOKEN_STOPWORD);
+    expect(stopwords).toEqual(["don't", 'don’t', 'dont']);
   });
 
   it('tokenizes words and emojis into shared ids', () => {

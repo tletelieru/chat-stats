@@ -62,7 +62,22 @@ async function withStore<T>(
   }
 }
 
-export const listSaved = () => withStore<SavedStats[]>('readonly', (store) => store.getAll());
+function withWordDefaults(entry: SavedStats): SavedStats {
+  const words = entry.stats.words.map((person) => ({
+    ...person,
+    upperMessages: person.upperMessages ?? 0,
+    upperWords: person.upperWords ?? 0,
+    shouted: person.shouted ?? [],
+    faces: person.faces ?? [],
+    faceCount: person.faceCount ?? 0,
+    pairs: person.pairs ?? [],
+    triples: person.triples ?? [],
+  }));
+  return { ...entry, stats: { ...entry.stats, words } };
+}
+
+export const listSaved = async () =>
+  (await withStore<SavedStats[]>('readonly', (store) => store.getAll())).map(withWordDefaults);
 
 export const saveStats = (entry: SavedStats) =>
   withStore('readwrite', (store) => store.add({ ...entry, stats: stripMessageText(entry.stats) }));

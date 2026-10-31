@@ -18,6 +18,7 @@ export type Ranked = {
 export type MessageRef = {
   ts: number;
   author: number;
+  kind?: MessageKind;
   preview: string;
 };
 
@@ -148,6 +149,13 @@ export type PersonWords = {
   emojis: Ranked[];
   laughs: number;
   questions: number;
+  upperMessages: number;
+  upperWords: number;
+  shouted: Ranked[];
+  faces: Ranked[];
+  faceCount: number;
+  pairs: Ranked[];
+  triples: Ranked[];
   phrase: number;
 };
 

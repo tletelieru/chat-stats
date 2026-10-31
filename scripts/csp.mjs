@@ -15,7 +15,7 @@ export function buildCsp(html) {
     "img-src 'self' blob: data:",
     "media-src 'self' blob:",
     "font-src 'self'",
-    "connect-src 'none'",
+    'connect-src blob: data:',
     "worker-src 'self'",
     "manifest-src 'self'",
     "base-uri 'none'",

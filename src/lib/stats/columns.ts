@@ -1,12 +1,13 @@
 import { MESSAGE_KINDS } from '~/lib/model';
 import type { Chat, MessageKind, Participant } from '~/lib/model';
-import { tokenizeTexts } from './tokenize';
+import { countUpperCase, keyboardFacesOf, tokenizeTexts } from './tokenize';
 import type { TokenTable } from './tokenize';
 
 export const FLAG_EDITED = 1;
 export const FLAG_DELETED = 2;
 export const FLAG_FORWARDED = 4;
 export const FLAG_QUESTION = 8;
+export const FLAG_UPPER = 16;
 
 export const KIND_ID = Object.fromEntries(MESSAGE_KINDS.map((kind, id) => [kind, id])) as Record<
   MessageKind,
@@ -26,6 +27,7 @@ export type Columns = {
   durationSec: Uint32Array;
   replyTo: Int32Array;
   linkCount: Uint16Array;
+  upperWords: Uint16Array;
   callState: Uint8Array;
   mediaKey: Int32Array;
   mediaKeys: string[];
@@ -36,6 +38,9 @@ export type Columns = {
   reactionEmoji: Int32Array;
   reactionBy: Int32Array;
   emojis: string[];
+  faceOffsets: Uint32Array;
+  faceIds: Int32Array;
+  faces: string[];
 };
 
 export function buildColumns(chat: Chat): Columns {
@@ -61,6 +66,7 @@ export function buildColumns(chat: Chat): Columns {
   const durationSec = new Uint32Array(size);
   const replyTo = new Int32Array(size).fill(-1);
   const linkCount = new Uint16Array(size);
+  const upperWords = new Uint16Array(size);
   const callState = new Uint8Array(size);
   const mediaKey = new Int32Array(size).fill(-1);
   const mediaKeys: string[] = [];
@@ -73,6 +79,10 @@ export function buildColumns(chat: Chat): Columns {
   const reactionEmojiList: number[] = [];
   const reactionByList: number[] = [];
   const indexById = new Map<string, number>();
+  const faceOffsets = new Uint32Array(size + 1);
+  const faceIdList: number[] = [];
+  const faces: string[] = [];
+  const faceIds = new Map<string, number>();
 
   messages.forEach((message, index) => {
     indexById.set(message.id, index);
@@ -82,11 +92,14 @@ export function buildColumns(chat: Chat): Columns {
     durationSec[index] = message.durationSec ?? 0;
     linkCount[index] = message.linkCount ?? 0;
     text[index] = message.text ?? '';
+    const upper = countUpperCase(text[index]);
+    upperWords[index] = upper.words;
     flags[index] =
       (message.edited ? FLAG_EDITED : 0) |
       (message.deleted ? FLAG_DELETED : 0) |
       (message.forwarded ? FLAG_FORWARDED : 0) |
-      (message.text?.includes('?') ? FLAG_QUESTION : 0);
+      (message.text?.includes('?') ? FLAG_QUESTION : 0) |
+      (upper.isMessage ? FLAG_UPPER : 0);
     if (message.callOutcome && MISSED_CALLS.has(message.callOutcome)) {
       callState[index] = CALL_MISSED;
     }
@@ -114,6 +127,17 @@ export function buildColumns(chat: Chat): Columns {
       reactionByList.push(reaction.by ? authorIndex(reaction.by) : -1);
     }
     reactionOffsets[index + 1] = reactionEmojiList.length;
+
+    for (const face of keyboardFacesOf(text[index])) {
+      let faceId = faceIds.get(face);
+      if (faceId === undefined) {
+        faceId = faces.length;
+        faceIds.set(face, faceId);
+        faces.push(face);
+      }
+      faceIdList.push(faceId);
+    }
+    faceOffsets[index + 1] = faceIdList.length;
   });
 
   messages.forEach((message, index) => {
@@ -131,6 +155,7 @@ export function buildColumns(chat: Chat): Columns {
     durationSec,
     replyTo,
     linkCount,
+    upperWords,
     callState,
     mediaKey,
     mediaKeys,
@@ -141,6 +166,9 @@ export function buildColumns(chat: Chat): Columns {
     reactionEmoji: Int32Array.from(reactionEmojiList),
     reactionBy: Int32Array.from(reactionByList),
     emojis,
+    faceOffsets,
+    faceIds: Int32Array.from(faceIdList),
+    faces,
   };
 }
 

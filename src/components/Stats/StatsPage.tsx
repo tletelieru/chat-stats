@@ -1,14 +1,18 @@
-import { Alert, Button, LinearProgress, Stack } from '@mui/material';
+import { Alert, Box, Button, LinearProgress, Stack } from '@mui/material';
 import { useEffect, useRef, useState } from 'react';
 import type { LoadedChat, MediaState } from '~/components/useChatSession';
 import { saveStats } from '~/lib/saved';
+import { messages } from '~/i18n/messages';
+import { useMessages } from '~/i18n/react';
 import type { Filter, StatsResult } from '~/lib/stats/types';
 import { DEFAULT_TIME_ZONE, wallTimeToTs } from '~/lib/time';
+import ExportDialog from './ExportDialog';
 import FilterBar from './FilterBar';
 import type { Controls } from './FilterBar';
 import StatsView from './StatsView';
 
 const DEBOUNCE_MS = 150;
+const EXPORT_WIDTH = 430;
 const HOUR_MS = 3_600_000;
 const DAY_MS = 24 * HOUR_MS;
 const YEAR_MS = 365 * DAY_MS;
@@ -48,8 +52,12 @@ type Props = {
 };
 
 export default function StatsPage({ chat, stats, media, onCompute }: Props) {
+  const t = useMessages(messages);
   const [controls, setControls] = useState(INITIAL);
   const [savedOk, setSavedOk] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportView, setExportView] = useState<{ quotes: boolean } | null>(null);
+  const exportTarget = useRef<HTMLDivElement | null>(null);
   const lastTs = useRef<number | null>(null);
 
   useEffect(() => {
@@ -79,11 +87,44 @@ export default function StatsPage({ chat, stats, media, onCompute }: Props) {
             }).then(() => setSavedOk(true));
           }}
         >
-          Save stats on this device
+          {t.save.action}
         </Button>
-        {savedOk && <Alert severity="success">Saved</Alert>}
+        <Button variant="contained" size="small" onClick={() => setExportOpen(true)}>
+          {t.exportPdf.action}
+        </Button>
+        {savedOk && <Alert severity="success">{t.save.done}</Alert>}
       </Stack>
-      <StatsView stats={stats} timeZone={controls.timeZone} media={media} />
+      <Box
+        ref={exportTarget}
+        sx={
+          exportView
+            ? {
+                width: EXPORT_WIDTH,
+                alignSelf: 'center',
+                p: 1.5,
+                bgcolor: 'background.default',
+                '& [data-export-hide]': { display: 'none' },
+                '& [data-table-scroll]': { overflow: 'visible' },
+                '& td, & th': { px: 0.75, whiteSpace: 'normal' },
+              }
+            : undefined
+        }
+      >
+        <StatsView
+          stats={stats}
+          timeZone={controls.timeZone}
+          media={media}
+          chosenColors={chat.colors}
+          hideQuotes={exportView !== null && !exportView.quotes}
+        />
+      </Box>
+      <ExportDialog
+        open={exportOpen}
+        target={exportTarget}
+        onClose={() => setExportOpen(false)}
+        onPrepare={(quotes) => setExportView({ quotes })}
+        onFinish={() => setExportView(null)}
+      />
     </Stack>
   );
 }

@@ -107,7 +107,7 @@ export function createCounts(context: PassContext): Accumulator<CountResult> {
       if (flag & FLAG_DELETED) flagCounts[person].deleted++;
 
       const target = replyTo[index];
-      if (target >= 0) {
+      if (target >= 0 && author[target] !== person) {
         sent[person]++;
         received[author[target]]++;
         repliedTo.set(target, (repliedTo.get(target) ?? 0) + 1);

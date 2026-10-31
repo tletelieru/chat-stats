@@ -1,15 +1,27 @@
-import { Alert, Button, MenuItem, Stack, TextField, Typography } from '@mui/material';
+import { Alert, Button, MenuItem, Stack, TextField, Typography, useTheme } from '@mui/material';
 import { useState } from 'react';
+import { ColorDot } from '~/components/Stats/personColors';
 import type { LoadedChat } from '~/components/useChatSession';
+import { chartTheme, defaultColors } from '~/lib/palette';
+import { messages } from '~/i18n/messages';
+import { useMessages } from '~/i18n/react';
 
 type Props = {
   chat: LoadedChat;
-  onConfirm: (names: Record<string, string>, aliases: Record<string, string>) => void;
+  onConfirm: (
+    names: Record<string, string>,
+    aliases: Record<string, string>,
+    colors: Record<string, string>,
+  ) => void;
 };
 
 export default function ReviewPeople({ chat, onConfirm }: Props) {
+  const t = useMessages(messages).review;
   const [names, setNames] = useState<Record<string, string>>({});
   const [aliases, setAliases] = useState<Record<string, string>>({});
+  const [colors, setColors] = useState<Record<string, string>>({});
+  const { palette } = useTheme();
+  const defaults = defaultColors(chat.counts, chartTheme(palette.mode));
 
   return (
     <Stack spacing={2}>
@@ -17,13 +29,10 @@ export default function ReviewPeople({ chat, onConfirm }: Props) {
         {chat.name}
       </Typography>
       <Typography color="text.secondary">
-        {chat.messageCount.toLocaleString()} messages, {chat.people.length} participants
+        {t.summary(chat.messageCount.toLocaleString(), chat.people.length)}
       </Typography>
       {chat.unknownMedia > 0 && (
-        <Alert severity="warning">
-          {chat.unknownMedia.toLocaleString()} media messages have an unknown type. Re-export the
-          chat with media to classify them.
-        </Alert>
+        <Alert severity="warning">{t.unknownMedia(chat.unknownMedia.toLocaleString())}</Alert>
       )}
 
       <Stack spacing={0.5}>
@@ -34,12 +43,23 @@ export default function ReviewPeople({ chat, onConfirm }: Props) {
         ))}
       </Stack>
 
-      {chat.people.map(({ id, name }) => (
-        <Stack key={id} direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+      {chat.people.map(({ id, name }, person) => (
+        <Stack
+          key={id}
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={1}
+          sx={{ alignItems: { sm: 'center' } }}
+        >
+          <ColorDot
+            name={name}
+            size={32}
+            color={colors[id] ?? defaults[person]}
+            onChange={(color) => setColors({ ...colors, [id]: color })}
+          />
           <TextField
             size="small"
             fullWidth
-            label={`Name for ${name}`}
+            label={t.nameFor(name)}
             value={names[id] ?? name}
             onChange={(event) => setNames({ ...names, [id]: event.target.value })}
           />
@@ -47,7 +67,7 @@ export default function ReviewPeople({ chat, onConfirm }: Props) {
             select
             size="small"
             fullWidth
-            label={`Merge ${name} into`}
+            label={t.mergeInto(name)}
             value={aliases[id] ?? ''}
             onChange={(event) => {
               const others = Object.entries(aliases).filter(([key]) => key !== id);
@@ -55,7 +75,7 @@ export default function ReviewPeople({ chat, onConfirm }: Props) {
               setAliases(Object.fromEntries(target ? [...others, [id, target]] : others));
             }}
           >
-            <MenuItem value="">Keep separate</MenuItem>
+            <MenuItem value="">{t.keepSeparate}</MenuItem>
             {chat.people
               .filter((other) => other.id !== id && !aliases[other.id])
               .map((other) => (
@@ -67,8 +87,8 @@ export default function ReviewPeople({ chat, onConfirm }: Props) {
         </Stack>
       ))}
 
-      <Button variant="contained" onClick={() => onConfirm(names, aliases)}>
-        Show stats
+      <Button variant="contained" onClick={() => onConfirm(names, aliases, colors)}>
+        {t.show}
       </Button>
     </Stack>
   );

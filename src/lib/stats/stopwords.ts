@@ -7,5 +7,10 @@ export const STOPWORDS = new Set(
   about after all also am an and any are as at be because been but by can could did do does for from
   had has have he her him his how i if in into is it its just me more my no not of on one or our out
   she so some than that the their them then there they this to up us was we were what when which who
-  will with would you your`.split(/\s+/),
+  will with would you your
+  im ive id ill youre youve theyre were dont didnt doesnt cant couldnt wouldnt shouldnt isnt arent wasnt
+  thats whats theres hes shes lets too very get got much many like cause cuz bc u ur
+  q k x d pq xq porq porque estoy estas esta estan tambien aunque entonces asi aca ahi eh ah oh`.split(
+    /\s+/,
+  ),
 );

@@ -35,4 +35,5 @@ Astro static output, one React island (`client:only="react"`), TypeScript strict
 - `trailingSlash: 'always'` keeps the precached app URL as `/chat-stats/`. Offline breaks without it.
 - Unit tests mock `Chart`, so check chart changes against `npm run preview` in a real browser.
 - WhatsApp exports have no timezone: times are read as America/Santiago wall time at import.
+- All UI text lives in `src/i18n/messages.ts` (en and es). Locale and color mode are kept in localStorage.
 - Branches: `feat/*` with PRs to `dev`. `main` and `dev` are protected, merges are manual.

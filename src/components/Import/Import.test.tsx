@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { LoadedChat } from '~/components/useChatSession';
@@ -10,6 +10,7 @@ const chat: LoadedChat = {
   name: 'Ana',
   source: 'whatsapp',
   messageCount: 3,
+  counts: [1, 2],
   unknownMedia: 2,
   people: [
     { id: 'a', name: 'Ana' },
@@ -46,6 +47,16 @@ describe('ChatPicker', () => {
 });
 
 describe('ReviewPeople', () => {
+  it('offers the default color and passes the chosen one', async () => {
+    const onConfirm = vi.fn();
+    render(<ReviewPeople chat={chat} onConfirm={onConfirm} />);
+    expect(screen.getByLabelText('Color for Beto')).toHaveValue('#2a78d6');
+    expect(screen.getByLabelText('Color for Ana')).toHaveValue('#eb6834');
+    fireEvent.change(screen.getByLabelText('Color for Ana'), { target: { value: '#ff00aa' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Show stats' }));
+    expect(onConfirm).toHaveBeenCalledWith({}, {}, { a: '#ff00aa' });
+  });
+
   it('shows the preview and the unknown media warning', () => {
     render(<ReviewPeople chat={chat} onConfirm={vi.fn()} />);
     expect(screen.getByText('hola')).toBeInTheDocument();
@@ -61,6 +72,6 @@ describe('ReviewPeople', () => {
     await userEvent.click(screen.getByRole('combobox', { name: 'Merge Beto into' }));
     await userEvent.click(within(screen.getByRole('listbox')).getByText('Ana'));
     await userEvent.click(screen.getByRole('button', { name: 'Show stats' }));
-    expect(onConfirm).toHaveBeenCalledWith({ a: 'Anita' }, { b: 'a' });
+    expect(onConfirm).toHaveBeenCalledWith({ a: 'Anita' }, { b: 'a' }, {});
   });
 });

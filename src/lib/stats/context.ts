@@ -1,3 +1,4 @@
+import { MESSAGE_KINDS } from '~/lib/model';
 import { createOffsetCache } from '~/lib/time';
 import type { Columns } from './columns';
 import type { Filter, MessageRef, Ranked } from './types';
@@ -39,6 +40,7 @@ export function messageRef(columns: Columns, index: number): MessageRef {
   return {
     ts: columns.ts[index],
     author: columns.author[index],
+    kind: MESSAGE_KINDS[columns.kind[index]],
     preview: columns.text[index].slice(0, PREVIEW_LENGTH),
   };
 }

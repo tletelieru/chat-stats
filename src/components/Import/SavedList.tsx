@@ -1,9 +1,12 @@
 import { Button, List, ListItem, ListItemButton, ListItemText, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
+import { messages } from '~/i18n/messages';
+import { useMessages } from '~/i18n/react';
 import { listSaved, removeSaved } from '~/lib/saved';
 import type { SavedStats } from '~/lib/saved';
 
 export default function SavedList({ onOpen }: { onOpen: (saved: SavedStats) => void }) {
+  const t = useMessages(messages).saved;
   const [saved, setSaved] = useState<SavedStats[]>([]);
 
   useEffect(() => {
@@ -15,7 +18,7 @@ export default function SavedList({ onOpen }: { onOpen: (saved: SavedStats) => v
   return (
     <>
       <Typography variant="h6" component="h2">
-        Saved stats
+        {t.title}
       </Typography>
       <List dense>
         {saved.map((entry) => (
@@ -24,14 +27,14 @@ export default function SavedList({ onOpen }: { onOpen: (saved: SavedStats) => v
             disablePadding
             secondaryAction={
               <Button
-                aria-label={`Delete ${entry.name}`}
+                aria-label={t.remove(entry.name)}
                 onClick={() => {
                   void removeSaved(entry.id as number)
                     .then(listSaved)
                     .then(setSaved);
                 }}
               >
-                Delete
+                {t.removeLabel}
               </Button>
             }
           >

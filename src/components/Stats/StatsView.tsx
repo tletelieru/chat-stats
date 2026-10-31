@@ -1,48 +1,64 @@
-import { MenuItem, Stack, TextField, Typography } from '@mui/material';
+import { Box, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import { useMemo, useState } from 'react';
 import type { MediaState } from '~/components/useChatSession';
+import { messages } from '~/i18n/messages';
+import { useMessages } from '~/i18n/react';
 import type { MessageKind } from '~/lib/model';
-import type { ResponsePair, StatsResult } from '~/lib/stats/types';
+import { defaultColors } from '~/lib/palette';
+import type { MessageRef, ResponsePair, StatsResult } from '~/lib/stats/types';
 import Chart, { useChartTheme } from './Chart';
+import CalendarHeatmap from './CalendarHeatmap';
 import {
   buildSeries,
-  calendarHeatmap,
   groupedBars,
+  dominantHeatmap,
   hourHeatmap,
   lines,
   stackedBars,
 } from './charts';
 import {
   HOURS,
-  PARTS_OF_DAY,
-  RESPONSE_BUCKETS,
-  WEEKDAYS,
   date,
   dateTime,
   duration,
   hour,
   number,
   percent,
+  sortByMax,
   weekday,
 } from './format';
+import type { CountRow } from './format';
+import Highlights from './Highlights';
 import MediaRanking from './MediaRanking';
-import { PersonTable, RankedChips, Section, Subheading, Tile } from './parts';
+import { PersonTable, RankedChips, Section, Subheading, Tile, Tiles } from './parts';
 import type { Row } from './parts';
+import { PersonColorContext } from './personColors';
 
-const MEDIA_ROWS: [string, MessageKind][] = [
-  ['Photos', 'photo'],
-  ['Videos', 'video'],
-  ['Voice notes', 'voice'],
-  ['Round video notes', 'video_note'],
-  ['Audio files', 'audio'],
-  ['Stickers', 'sticker'],
-  ['GIFs', 'gif'],
-  ['Documents', 'file'],
-  ['Locations', 'location'],
-  ['Polls', 'poll'],
-  ['Contacts', 'contact'],
-  ['Unknown media', 'unknown_media'],
+const MEDIA_KINDS: MessageKind[] = [
+  'photo',
+  'video',
+  'voice',
+  'video_note',
+  'audio',
+  'sticker',
+  'gif',
+  'file',
+  'location',
+  'poll',
+  'contact',
+  'unknown_media',
 ];
+
+const MIN_REPLIES = 3;
+const EVERYONE = 'everyone';
+
+function quote({ preview, kind }: MessageRef, mediaLabel: string): string {
+  if (preview) return `: “${preview}”`;
+  return kind && kind !== 'text' ? `: ${mediaLabel}` : '';
+}
+
+const hasDetail = ({ question, answer }: ResponsePair, mediaLabel: string) =>
+  Boolean(quote(question, mediaLabel) || quote(answer, mediaLabel));
 
 type PairProps = {
   label: string;
@@ -52,13 +68,15 @@ type PairProps = {
 };
 
 function Pair({ label, pair, names, timeZone }: PairProps) {
+  const t = useMessages(messages);
   return (
     <Typography variant="body2">
       <strong>
         {label} ({duration(pair.ms)}, {dateTime(pair.answer.ts, timeZone)}):
       </strong>{' '}
-      {names[pair.question.author]}: “{pair.question.preview || '[media]'}” →{' '}
-      {names[pair.answer.author]}: “{pair.answer.preview || '[media]'}”
+      {names[pair.question.author]}
+      {quote(pair.question, t.stats.media)} → {names[pair.answer.author]}
+      {quote(pair.answer, t.stats.media)}
     </Typography>
   );
 }
@@ -67,20 +85,46 @@ type Props = {
   stats: StatsResult;
   timeZone: string;
   media?: MediaState;
+  chosenColors?: Record<string, string>;
+  hideQuotes?: boolean;
 };
 
-export default function StatsView({ stats, timeZone, media }: Props) {
+export default function StatsView({ stats, timeZone, media, chosenColors, hideQuotes }: Props) {
+  const t = useMessages(messages);
+  const s = t.stats;
   const theme = useChartTheme();
   const names = useMemo(() => stats.people.map(({ name }) => name), [stats.people]);
-  const weights = stats.overview.perPerson.map(({ messages }) => messages);
-  const [heatPerson, setHeatPerson] = useState('');
+  const weights = stats.overview.perPerson.map(({ messages: count }) => count);
+  const [overrides, setOverrides] = useState<Record<number, string>>(() =>
+    Object.fromEntries(
+      stats.people.flatMap(({ id }, person) =>
+        chosenColors?.[id] ? [[person, chosenColors[id]]] : [],
+      ),
+    ),
+  );
+  const [weightsRef] = useState(weights);
+  const [heatPerson, setHeatPerson] = useState(EVERYONE);
   const [period, setPeriod] = useState<'weeks' | 'months'>('months');
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
   const { overview, conversations, responses, activity } = stats;
-  const series = (rows: (number | null)[][]) => buildSeries(names, rows, weights, theme);
+  const colors = useMemo(
+    () => defaultColors(weightsRef, theme).map((color, person) => overrides[person] ?? color),
+    [weightsRef, theme, overrides],
+  );
+  const colorContext = useMemo(
+    () => ({
+      colors,
+      setColor: (person: number, color: string) =>
+        setOverrides((current) => ({ ...current, [person]: color })),
+    }),
+    [colors],
+  );
+  const series = (rows: (number | null)[][]) =>
+    buildSeries(names, rows, weights, theme, s.other, colors);
 
-  const timeline = activity[period];
+  const multipleMonths = activity.months.length > 1;
+  const timeline = activity[multipleMonths ? period : 'weeks'];
   const timelineSeries = series(
     names.map((_, person) => timeline.map(({ perPerson }) => perPerson[person])),
   );
@@ -94,35 +138,65 @@ export default function StatsView({ stats, timeZone, media }: Props) {
     ),
   );
 
-  const calendar = calendarHeatmap(activity.days, theme);
   const day = activity.days.find((entry) => entry.day === selectedDay);
-  const heat = heatPerson === '' ? activity.heat : activity.perPerson[Number(heatPerson)].heat;
+
+  const mostReplied = hideQuotes
+    ? []
+    : stats.replies.top.filter(({ count }) => count >= MIN_REPLIES);
 
   const conversationRows: Row[] = [
-    ['Started', (p) => number(conversations.started[p])],
-    ['Ended', (p) => number(conversations.ended[p])],
-    ['Double texts', (p) => number(stats.bursts[p].double)],
-    ['Triple texts or more', (p) => number(stats.bursts[p].triple)],
-    ['Longest burst', (p) => number(stats.bursts[p].longest)],
-    ['Replies used', (p) => number(stats.replies.sent[p])],
-    ['Replies received', (p) => number(stats.replies.received[p])],
+    [s.started, (p) => number(conversations.started[p]), (p) => conversations.started[p]],
+    [s.ended, (p) => number(conversations.ended[p]), (p) => conversations.ended[p]],
+    [s.doubleTexts, (p) => number(stats.bursts[p].double), (p) => stats.bursts[p].double],
+    [s.tripleTexts, (p) => number(stats.bursts[p].triple), (p) => stats.bursts[p].triple],
+    [s.longestBurst, (p) => number(stats.bursts[p].longest), (p) => stats.bursts[p].longest],
+    [s.repliesUsed, (p) => number(stats.replies.sent[p]), (p) => stats.replies.sent[p]],
+    [s.repliesReceived, (p) => number(stats.replies.received[p]), (p) => stats.replies.received[p]],
   ];
 
   const responseRows: Row[] = [
-    ['Responses', (p) => number(responses[p].count)],
-    ['Average', (p) => duration(responses[p].avgMs)],
-    ['Median', (p) => duration(responses[p].medianMs)],
-    ['p90', (p) => duration(responses[p].p90Ms)],
-    ['Shortest', (p) => duration(responses[p].shortest?.ms ?? null)],
-    ['Longest', (p) => duration(responses[p].longest?.ms ?? null)],
+    [s.responses, (p) => number(responses[p].count), (p) => responses[p].count],
+    [s.average, (p) => duration(responses[p].avgMs), (p) => responses[p].avgMs, true],
+    [s.median, (p) => duration(responses[p].medianMs), (p) => responses[p].medianMs, true],
+    ['p90', (p) => duration(responses[p].p90Ms), (p) => responses[p].p90Ms, true],
+    [
+      s.shortest,
+      (p) => duration(responses[p].shortest?.ms ?? null),
+      (p) => responses[p].shortest?.ms ?? null,
+      true,
+    ],
+    [
+      s.longest,
+      (p) => duration(responses[p].longest?.ms ?? null),
+      (p) => responses[p].longest?.ms ?? null,
+      true,
+    ],
+  ];
+
+  const countRows: CountRow[] = [
+    ...MEDIA_KINDS.map((kind): CountRow => [
+      t.kinds[kind] ?? kind,
+      (p) => stats.media[p].kinds[kind],
+    ]),
+    [s.links, (p) => stats.media[p].links],
+    [s.edited, (p) => stats.flags[p].edited],
+    [s.forwarded, (p) => stats.flags[p].forwarded],
+    [s.deleted, (p) => stats.flags[p].deleted],
   ];
 
   const mediaRows: Row[] = [
-    ...MEDIA_ROWS.map(([label, kind]): Row => [label, (p) => number(stats.media[p].kinds[kind])]),
-    ['Links', (p) => number(stats.media[p].links)],
-    ['Voice minutes', (p) => (stats.media[p].voiceSec / 60).toFixed(1)],
+    ...sortByMax(countRows, names.length).map(([label, value]): Row => [
+      label,
+      (p) => number(value(p)),
+      value,
+    ]),
     [
-      'Average voice length',
+      s.voiceMinutes,
+      (p) => (stats.media[p].voiceSec / 60).toFixed(1),
+      (p) => stats.media[p].voiceSec,
+    ],
+    [
+      s.avgVoice,
       (p) =>
         duration(
           stats.media[p].voiceCount
@@ -130,233 +204,314 @@ export default function StatsView({ stats, timeZone, media }: Props) {
             : null,
         ),
     ],
-    ['Longest voice note', (p) => duration(stats.media[p].longestVoiceSec * 1000)],
-    ['Edited', (p) => number(stats.flags[p].edited)],
-    ['Forwarded', (p) => number(stats.flags[p].forwarded)],
-    ['Deleted', (p) => number(stats.flags[p].deleted)],
+    [
+      s.longestVoice,
+      (p) => duration(stats.media[p].longestVoiceSec * 1000),
+      (p) => stats.media[p].longestVoiceSec * 1000,
+    ],
   ];
 
   const callRows: Row[] = [
-    ['Calls made', (p) => number(stats.calls[p].count)],
-    ['Total time', (p) => duration(stats.calls[p].durationSec * 1000)],
-    ['Missed or declined', (p) => number(stats.calls[p].missed)],
-    ['Longest call', (p) => duration(stats.calls[p].longestSec * 1000)],
+    [s.callsMade, (p) => number(stats.calls[p].count), (p) => stats.calls[p].count],
+    [
+      s.totalTime,
+      (p) => duration(stats.calls[p].durationSec * 1000),
+      (p) => stats.calls[p].durationSec * 1000,
+    ],
+    [s.missed, (p) => number(stats.calls[p].missed), (p) => stats.calls[p].missed],
+    [
+      s.longestCall,
+      (p) => duration(stats.calls[p].longestSec * 1000),
+      (p) => stats.calls[p].longestSec * 1000,
+    ],
   ];
 
   const timeRows: Row[] = [
-    ['Most active hour', (p) => hour(activity.perPerson[p].topHour)],
-    ['Most active weekday', (p) => weekday(activity.perPerson[p].topWeekday)],
-    ['Typical first hour', (p) => hour(activity.perPerson[p].earliestHour)],
-    ['Typical last hour', (p) => hour(activity.perPerson[p].latestHour)],
-    ...PARTS_OF_DAY.map((label, part): Row => [
+    [s.topHour, (p) => hour(activity.perPerson[p].topHour)],
+    [s.topWeekday, (p) => weekday(activity.perPerson[p].topWeekday, t.weekdays)],
+    [s.firstHour, (p) => hour(activity.perPerson[p].earliestHour)],
+    [s.lastHour, (p) => hour(activity.perPerson[p].latestHour)],
+    ...t.partsOfDay.map((label, part): Row => [
       label,
       (p) => number(activity.perPerson[p].partsOfDay[part]),
+      (p) => activity.perPerson[p].partsOfDay[part],
     ]),
   ];
 
   const wordRows: Row[] = [
-    ['Laughs', (p) => number(stats.words[p].laughs)],
-    ['Questions', (p) => number(stats.words[p].questions)],
-    ['Phrase matches', (p) => number(stats.words[p].phrase)],
-    ['Reactions given', (p) => number(stats.reactions.given[p])],
+    [s.laughs, (p) => number(stats.words[p].laughs), (p) => stats.words[p].laughs],
+    [s.faces, (p) => number(stats.words[p].faceCount), (p) => stats.words[p].faceCount],
+    [s.questions, (p) => number(stats.words[p].questions), (p) => stats.words[p].questions],
+    [
+      s.upperMessages,
+      (p) => number(stats.words[p].upperMessages),
+      (p) => stats.words[p].upperMessages,
+    ],
+    [s.upperWords, (p) => number(stats.words[p].upperWords), (p) => stats.words[p].upperWords],
+    [s.phraseMatches, (p) => number(stats.words[p].phrase), (p) => stats.words[p].phrase],
+    [s.reactionsGiven, (p) => number(stats.reactions.given[p]), (p) => stats.reactions.given[p]],
   ];
 
   return (
-    <Stack spacing={2}>
-      <Section title="Overview">
-        <Stack direction="row" useFlexGap sx={{ flexWrap: 'wrap', gap: 4 }}>
-          <Tile label="Messages" value={number(overview.messages)} />
-          <Tile label="Words" value={number(overview.words)} />
-          <Tile label="Characters" value={number(overview.chars)} />
-          <Tile
-            label="Days active"
-            value={`${number(overview.daysActive)} / ${number(overview.daysTotal)}`}
-          />
-          <Tile label="First message" value={date(overview.firstTs, timeZone)} />
-          <Tile label="Last message" value={date(overview.lastTs, timeZone)} />
-        </Stack>
-        <PersonTable
-          names={names}
-          rows={[
-            ['Messages', (p) => number(overview.perPerson[p].messages)],
-            ['Share', (p) => percent(overview.perPerson[p].share)],
-            ['Words', (p) => number(overview.perPerson[p].words)],
-            ['Average length', (p) => number(overview.perPerson[p].avgLength)],
-          ]}
-        />
-      </Section>
+    <PersonColorContext value={colorContext}>
+      <Stack spacing={2}>
+        <Highlights stats={stats} />
 
-      <Section title="Conversations">
-        <Stack direction="row" useFlexGap sx={{ flexWrap: 'wrap', gap: 4 }}>
-          <Tile label="Conversations" value={number(conversations.total)} />
-          <Tile label="Per week" value={conversations.perWeek.toFixed(1)} />
-          <Tile
-            label="Longest conversation"
-            value={
-              conversations.longest
-                ? `${duration(conversations.longest.durationMs)}, ${number(conversations.longest.messages)} msgs`
-                : '–'
-            }
+        <Section title={t.sections.overview}>
+          <Tiles>
+            <Tile label={s.messages} value={number(overview.messages)} />
+            <Tile label={s.words} value={number(overview.words)} />
+            <Tile label={s.characters} value={number(overview.chars)} />
+            <Tile
+              label={s.daysActive}
+              value={`${number(overview.daysActive)} / ${number(overview.daysTotal)}`}
+            />
+            <Tile label={s.firstMessage} value={date(overview.firstTs, timeZone)} />
+            <Tile label={s.lastMessage} value={date(overview.lastTs, timeZone)} />
+          </Tiles>
+          <PersonTable
+            names={names}
+            rows={[
+              [
+                s.messages,
+                (p) => number(overview.perPerson[p].messages),
+                (p) => overview.perPerson[p].messages,
+              ],
+              [
+                s.share,
+                (p) => percent(overview.perPerson[p].share),
+                (p) => overview.perPerson[p].share,
+              ],
+              [
+                s.words,
+                (p) => number(overview.perPerson[p].words),
+                (p) => overview.perPerson[p].words,
+              ],
+              [
+                s.avgLength,
+                (p) => number(overview.perPerson[p].avgLength),
+                (p) => Math.round(overview.perPerson[p].avgLength),
+              ],
+            ]}
           />
-          <Tile
-            label="Longest silence"
-            value={duration(conversations.longestSilence?.durationMs ?? null)}
-          />
-        </Stack>
-        <PersonTable names={names} rows={conversationRows} />
-        {stats.replies.top.length > 0 && <Subheading>Most replied-to messages</Subheading>}
-        {stats.replies.top.map((message) => (
-          <Typography key={`${message.ts}-${message.author}`} variant="body2">
-            {message.count.toLocaleString()} × {names[message.author]}: “
-            {message.preview || '[media]'}”
-          </Typography>
-        ))}
-      </Section>
+        </Section>
 
-      <Section title="Response times">
-        <PersonTable names={names} rows={responseRows} />
-        {responses.map(({ shortest, longest }, person) => (
-          <Stack key={names[person]} spacing={0.5}>
-            {shortest && (
-              <Pair
-                label={`${names[person]}, shortest`}
-                pair={shortest}
-                names={names}
-                timeZone={timeZone}
-              />
-            )}
-            {longest && (
-              <Pair
-                label={`${names[person]}, longest`}
-                pair={longest}
-                names={names}
-                timeZone={timeZone}
-              />
-            )}
-          </Stack>
-        ))}
-        <Subheading>Distribution</Subheading>
-        <Chart
-          label="Response time distribution per person"
-          option={groupedBars(
-            RESPONSE_BUCKETS,
-            series(responses.map(({ histogram }) => histogram)),
-            theme,
-          )}
-        />
-        <Subheading>Monthly average</Subheading>
-        <Chart
-          label="Average response time per month"
-          option={lines(months, monthlySeries, theme, duration)}
-        />
-        <Subheading>By hour of day</Subheading>
-        <Chart
-          label="Average response time by hour"
-          option={lines(HOURS, series(responses.map(({ byHour }) => byHour)), theme, duration)}
-        />
-      </Section>
-
-      <Section title="Media and message types">
-        <PersonTable names={names} rows={mediaRows} />
-      </Section>
-
-      <MediaRanking stickers={stats.stickers} names={names} media={media} />
-
-      <Section title="Calls">
-        <PersonTable names={names} rows={callRows} />
-      </Section>
-
-      <Section title="Activity">
-        <Stack direction="row" useFlexGap sx={{ flexWrap: 'wrap', gap: 4 }}>
-          <Tile
-            label={`Busiest day${activity.busiestDay ? ` (${activity.busiestDay.day})` : ''}`}
-            value={number(activity.busiestDay?.count ?? 0)}
-          />
-          <Tile
-            label={
-              activity.longestStreak
-                ? `Longest streak (from ${activity.longestStreak.from})`
-                : 'Longest streak'
-            }
-            value={`${number(activity.longestStreak?.days ?? 0)} days`}
-          />
-          <Tile
-            label={
-              activity.longestGap ? `Longest gap (from ${activity.longestGap.from})` : 'Longest gap'
-            }
-            value={`${number(activity.longestGap?.days ?? 0)} days`}
-          />
-        </Stack>
-        <Subheading>Messages per day</Subheading>
-        <Chart
-          label="Calendar heatmap of messages per day"
-          option={calendar.option}
-          height={calendar.height}
-          onClick={({ data }) => setSelectedDay((data as [string, number])[0])}
-        />
-        {day && (
-          <Typography variant="body2">
-            {day.day}: {names.map((name, person) => `${name} ${day.perPerson[person]}`).join(', ')}
-          </Typography>
-        )}
-        <TextField
-          select
-          size="small"
-          label="Timeline"
-          value={period}
-          sx={{ maxWidth: 200 }}
-          onChange={(event) => setPeriod(event.target.value as 'weeks' | 'months')}
-        >
-          <MenuItem value="months">Per month</MenuItem>
-          <MenuItem value="weeks">Per week</MenuItem>
-        </TextField>
-        <Chart
-          label="Messages over time, stacked by person"
-          option={stackedBars(
-            timeline.map(({ period: label }) => label),
-            timelineSeries,
-            theme,
-          )}
-        />
-        <TextField
-          select
-          size="small"
-          label="Heatmap person"
-          value={heatPerson}
-          sx={{ maxWidth: 200 }}
-          onChange={(event) => setHeatPerson(event.target.value)}
-        >
-          <MenuItem value="">Everyone</MenuItem>
-          {names.map((name, person) => (
-            <MenuItem key={name} value={String(person)}>
-              {name}
-            </MenuItem>
+        <Section title={t.sections.conversations}>
+          <Tiles>
+            <Tile label={s.conversations} value={number(conversations.total)} />
+            <Tile label={s.perWeek} value={conversations.perWeek.toFixed(1)} />
+            <Tile
+              label={s.longestConversation}
+              value={
+                conversations.longest
+                  ? `${duration(conversations.longest.durationMs)}, ${number(conversations.longest.messages)} ${s.msgs}`
+                  : '–'
+              }
+            />
+            <Tile
+              label={s.longestSilence}
+              value={duration(conversations.longestSilence?.durationMs ?? null)}
+            />
+          </Tiles>
+          <PersonTable names={names} rows={conversationRows} />
+          {mostReplied.length > 0 && <Subheading>{s.mostReplied}</Subheading>}
+          {mostReplied.map((message) => (
+            <Typography key={`${message.ts}-${message.author}`} variant="body2">
+              {message.count.toLocaleString()} × {names[message.author]},{' '}
+              {dateTime(message.ts, timeZone)}
+              {quote(message, s.media)}
+            </Typography>
           ))}
-        </TextField>
-        <Chart
-          label="Messages by hour and weekday"
-          option={hourHeatmap(heat, HOURS, WEEKDAYS, theme)}
-          height={300}
-        />
-        <PersonTable names={names} rows={timeRows} />
-      </Section>
+        </Section>
 
-      <Section title="Words and emoji">
-        <PersonTable names={names} rows={wordRows} />
-        {stats.reactions.top.length > 0 && (
-          <>
-            <Subheading>Top reactions</Subheading>
-            <RankedChips items={stats.reactions.top} />
-          </>
-        )}
-        {names.map((name, person) => (
-          <Stack key={name} spacing={1}>
-            <Subheading>{name}</Subheading>
-            <RankedChips items={stats.words[person].words} />
-            <RankedChips items={stats.words[person].emojis} />
-          </Stack>
-        ))}
-      </Section>
-    </Stack>
+        <Section title={t.sections.responses}>
+          <PersonTable names={names} rows={responseRows} />
+          {responses.map(({ shortest, longest }, person) => (
+            <Stack key={names[person]} spacing={0.5}>
+              {!hideQuotes && shortest && hasDetail(shortest, s.media) && (
+                <Pair
+                  label={s.pairShortest(names[person])}
+                  pair={shortest}
+                  names={names}
+                  timeZone={timeZone}
+                />
+              )}
+              {!hideQuotes && longest && hasDetail(longest, s.media) && (
+                <Pair
+                  label={s.pairLongest(names[person])}
+                  pair={longest}
+                  names={names}
+                  timeZone={timeZone}
+                />
+              )}
+            </Stack>
+          ))}
+          <Subheading>{s.distribution}</Subheading>
+          <Chart
+            label={t.charts.distribution}
+            option={groupedBars(
+              t.buckets,
+              series(responses.map(({ histogram }) => histogram)),
+              theme,
+            )}
+          />
+          {multipleMonths && (
+            <>
+              <Subheading>{s.monthlyAverage}</Subheading>
+              <Chart
+                label={t.charts.monthly}
+                option={lines(months, monthlySeries, theme, duration)}
+              />
+            </>
+          )}
+          <Subheading>{s.byHour}</Subheading>
+          <Chart
+            label={t.charts.byHour}
+            option={lines(HOURS, series(responses.map(({ byHour }) => byHour)), theme, duration)}
+          />
+        </Section>
+
+        <Section title={t.sections.media}>
+          <PersonTable names={names} rows={mediaRows} />
+        </Section>
+
+        <MediaRanking stickers={stats.stickers} names={names} media={media} />
+
+        <Section title={t.sections.calls}>
+          <PersonTable names={names} rows={callRows} />
+        </Section>
+
+        <Section title={t.sections.activity}>
+          <Tiles>
+            <Tile
+              label={
+                activity.busiestDay ? `${s.busiestDay} (${activity.busiestDay.day})` : s.busiestDay
+              }
+              value={number(activity.busiestDay?.count ?? 0)}
+            />
+            <Tile
+              label={
+                activity.longestStreak
+                  ? s.since(s.longestStreak, activity.longestStreak.from)
+                  : s.longestStreak
+              }
+              value={s.days(number(activity.longestStreak?.days ?? 0))}
+            />
+            <Tile
+              label={
+                activity.longestGap ? s.since(s.longestGap, activity.longestGap.from) : s.longestGap
+              }
+              value={s.days(number(activity.longestGap?.days ?? 0))}
+            />
+          </Tiles>
+          <Subheading>{s.perDay}</Subheading>
+          <CalendarHeatmap days={activity.days} selected={selectedDay} onSelect={setSelectedDay} />
+          {day && (
+            <Typography variant="body2">
+              {day.day}:{' '}
+              {names.map((name, person) => `${name} ${day.perPerson[person]}`).join(', ')}
+            </Typography>
+          )}
+          {multipleMonths ? (
+            <TextField
+              data-export-hide
+              select
+              size="small"
+              label={s.timeline}
+              value={period}
+              sx={{ maxWidth: 200 }}
+              onChange={(event) => setPeriod(event.target.value as 'weeks' | 'months')}
+            >
+              <MenuItem value="months">{s.perMonth}</MenuItem>
+              <MenuItem value="weeks">{s.perWeekOption}</MenuItem>
+            </TextField>
+          ) : (
+            <Subheading>{s.perWeekOption}</Subheading>
+          )}
+          <Chart
+            label={t.charts.timeline}
+            option={stackedBars(
+              timeline.map(({ period: label }) => label),
+              timelineSeries,
+              theme,
+            )}
+          />
+          <TextField
+            data-export-hide
+            select
+            size="small"
+            label={s.heatmapPerson}
+            value={heatPerson}
+            sx={{ maxWidth: 260 }}
+            onChange={(event) => setHeatPerson(event.target.value)}
+          >
+            <MenuItem value={EVERYONE}>{t.filters.everyone}</MenuItem>
+            {names.map((name, person) => (
+              <MenuItem key={name} value={String(person)}>
+                {name}
+              </MenuItem>
+            ))}
+          </TextField>
+          <Chart
+            label={t.charts.heatmap}
+            option={
+              heatPerson === EVERYONE
+                ? dominantHeatmap({
+                    perPerson: activity.perPerson.map(({ heat }) => heat),
+                    names,
+                    colors,
+                    hours: HOURS,
+                    weekdays: t.weekdays,
+                    theme,
+                    tieColor: theme.other,
+                  })
+                : hourHeatmap(
+                    activity.perPerson[Number(heatPerson)].heat,
+                    HOURS,
+                    t.weekdays,
+                    theme,
+                    colors[Number(heatPerson)],
+                  )
+            }
+            height={280}
+          />
+          {heatPerson === EVERYONE && (
+            <Stack direction="row" useFlexGap sx={{ flexWrap: 'wrap', gap: 2 }}>
+              {[...names.map((name, person) => [name, colors[person]]), [s.tie, theme.other]].map(
+                ([label, color]) => (
+                  <Stack key={label} direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
+                    <Box sx={{ width: 12, height: 12, borderRadius: '3px', bgcolor: color }} />
+                    <Typography variant="body2" color="text.secondary">
+                      {label}
+                    </Typography>
+                  </Stack>
+                ),
+              )}
+            </Stack>
+          )}
+          <PersonTable names={names} rows={timeRows} />
+        </Section>
+
+        <Section title={t.sections.words}>
+          <PersonTable names={names} rows={wordRows} />
+          {stats.reactions.top.length > 0 && (
+            <>
+              <Subheading>{s.topReactions}</Subheading>
+              <RankedChips items={stats.reactions.top} emoji />
+            </>
+          )}
+          {names.map((name, person) => (
+            <Stack key={name} spacing={1}>
+              <Subheading>{name}</Subheading>
+              <RankedChips items={stats.words[person].words} />
+              <RankedChips items={stats.words[person].emojis} emoji />
+              {stats.words[person].faces.length > 0 && (
+                <RankedChips items={stats.words[person].faces} />
+              )}
+            </Stack>
+          ))}
+        </Section>
+      </Stack>
+    </PersonColorContext>
   );
 }

@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ChatSummary, Participant } from '~/lib/model';
-import type { PreviewMessage, WorkerRequest, WorkerResponse } from '~/lib/session';
+import type {
+  ErrorCode,
+  PreviewMessage,
+  ProgressStep,
+  WorkerRequest,
+  WorkerResponse,
+} from '~/lib/session';
 import { takeSharedFile } from '~/lib/shared';
 import type { Filter, StatsResult } from '~/lib/stats/types';
 
@@ -8,6 +14,8 @@ export type LoadedChat = {
   name: string;
   source: 'telegram' | 'whatsapp';
   messageCount: number;
+  counts: number[];
+  colors?: Record<string, string>;
   unknownMedia: number;
   people: Participant[];
   preview: PreviewMessage[];
@@ -19,8 +27,8 @@ export type MediaState = {
 };
 
 export type SessionState =
-  | { phase: 'empty'; error?: string }
-  | { phase: 'parsing'; ratio: number; label: string }
+  | { phase: 'empty'; error?: ErrorCode }
+  | { phase: 'parsing'; ratio: number; step: ProgressStep }
   | { phase: 'pick'; chats: ChatSummary[] }
   | { phase: 'review'; chat: LoadedChat }
   | { phase: 'stats'; chat: LoadedChat };
@@ -30,6 +38,7 @@ export function useChatSession() {
   const runId = useRef(0);
   const [state, setState] = useState<SessionState>({ phase: 'empty' });
   const lastFilter = useRef<Filter | null>(null);
+  const phase = useRef<SessionState['phase']>('empty');
   const hashRequested = useRef(false);
   const urls = useRef<string[]>([]);
   const [stats, setStats] = useState<StatsResult | null>(null);
@@ -53,13 +62,13 @@ export function useChatSession() {
     worker.current = instance;
     instance.onmessage = ({ data }: MessageEvent<WorkerResponse>) => {
       if (data.type === 'progress') {
-        setState({ phase: 'parsing', ratio: data.ratio, label: data.label });
+        setState({ phase: 'parsing', ratio: data.ratio, step: data.step });
       } else if (data.type === 'chats') {
         setState({ phase: 'pick', chats: data.chats });
       } else if (data.type === 'ready') {
         setState({ phase: 'review', chat: data });
       } else if (data.type === 'error') {
-        setState({ phase: 'empty', error: data.message });
+        setState({ phase: 'empty', error: data.code });
       } else if (data.type === 'mediaProgress') {
         setMedia((current) => ({ ...current, ratio: data.ratio }));
       } else if (data.type === 'media') {
@@ -91,7 +100,7 @@ export function useChatSession() {
     (files: File[]) => {
       setStats(null);
       clearMedia();
-      setState({ phase: 'parsing', ratio: 0, label: 'Opening file' });
+      setState({ phase: 'parsing', ratio: 0, step: 'opening' });
       send({ type: 'open', files });
     },
     [send, clearMedia],
@@ -99,19 +108,37 @@ export function useChatSession() {
 
   const pickChat = useCallback(
     (index: number) => {
-      setState({ phase: 'parsing', ratio: 0, label: 'Parsing messages' });
+      setState({ phase: 'parsing', ratio: 0, step: 'parsing' });
       send({ type: 'pick', index });
     },
     [send],
   );
 
   const confirmPeople = useCallback(
-    (chat: LoadedChat, names: Record<string, string>, aliases: Record<string, string>) => {
+    (
+      chat: LoadedChat,
+      names: Record<string, string>,
+      aliases: Record<string, string>,
+      colors: Record<string, string>,
+    ) => {
       send({ type: 'people', names, aliases });
-      setState({ phase: 'stats', chat });
+      setState({ phase: 'stats', chat: { ...chat, colors } });
     },
     [send],
   );
+
+  useEffect(() => {
+    phase.current = state.phase;
+  }, [state.phase]);
+
+  useEffect(() => {
+    if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) return;
+    const reloadIfIdle = () => {
+      if (phase.current === 'empty') window.location.reload();
+    };
+    navigator.serviceWorker.addEventListener('controllerchange', reloadIfIdle);
+    return () => navigator.serviceWorker.removeEventListener('controllerchange', reloadIfIdle);
+  }, []);
 
   useEffect(() => {
     if ('serviceWorker' in navigator && import.meta.env.PROD) {

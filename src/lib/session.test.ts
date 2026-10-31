@@ -101,10 +101,17 @@ describe('createSession', () => {
     expect(find('ready')).toMatchObject({ name: 'Chat con Ana', unknownMedia: 1 });
   });
 
+  it('explains a Telegram HTML export folder', async () => {
+    const { session, find } = collect();
+    const files = [fileOf('style.css', 'body {}'), fileOf('messages.html', '<html></html>')];
+    await session.handle({ type: 'open', files });
+    expect(find('error')?.code).toBe('html-export');
+  });
+
   it('reports unsupported files', async () => {
     const { session, find } = collect();
     await session.handle({ type: 'open', files: [fileOf('notes.txt', 'nothing here')] });
-    expect(find('error')?.message).toContain('Unsupported');
+    expect(find('error')?.code).toBe('unsupported');
   });
 
   it('drops stale runs and answers the latest', async () => {

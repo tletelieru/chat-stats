@@ -82,7 +82,7 @@ export function createConversations(context: PassContext): Accumulator<Conversat
     const state = states[author[index]];
     state.values.push(ms);
     state.sum += ms;
-    if (!state.shortest || ms < state.shortest.ms) {
+    if (ms > 0 && (!state.shortest || ms < state.shortest.ms)) {
       state.shortest = { ms, question: prev, answer: index };
     }
     if (!state.longest || ms > state.longest.ms) {

@@ -1,12 +1,4 @@
-export const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 export const HOURS = Array.from({ length: 24 }, (_, hour) => `${hour}`.padStart(2, '0'));
-export const PARTS_OF_DAY = [
-  'Night (0–6)',
-  'Morning (6–12)',
-  'Afternoon (12–19)',
-  'Evening (19–24)',
-];
-export const RESPONSE_BUCKETS = ['< 1 min', '1–5 min', '5–30 min', '30 min–1 h', '1–6 h', '≥ 6 h'];
 
 export const number = (value: number) => Math.round(value).toLocaleString();
 export const percent = (value: number) => `${(value * 100).toFixed(1)}%`;
@@ -27,4 +19,13 @@ export function duration(ms: number | null): string {
 }
 
 export const hour = (value: number | null) => (value === null ? '–' : `${HOURS[value]}:00`);
-export const weekday = (value: number | null) => (value === null ? '–' : WEEKDAYS[value]);
+export const weekday = (value: number | null, names: string[]) =>
+  value === null ? '–' : names[value];
+
+export type CountRow = [label: string, value: (person: number) => number];
+
+export function sortByMax(rows: CountRow[], people: number): CountRow[] {
+  const peak = ([, value]: CountRow) =>
+    Math.max(0, ...Array.from({ length: people }, (_, person) => value(person)));
+  return [...rows].sort((a, b) => peak(b) - peak(a));
+}
