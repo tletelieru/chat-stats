@@ -32,11 +32,11 @@ describe('ChatStatsApp', () => {
     const footer = within(screen.getByRole('contentinfo'));
     expect(footer.getByRole('link', { name: 'tletelieru' })).toHaveAttribute(
       'href',
-      'https://github.com/tletelieru',
-    );
-    expect(footer.getByRole('link', { name: 'My site' })).toHaveAttribute(
-      'href',
       'https://tletelieru.github.io/tletelieru/',
+    );
+    expect(footer.getByRole('link', { name: 'GitHub' })).toHaveAttribute(
+      'href',
+      'https://github.com/tletelieru',
     );
   });
 

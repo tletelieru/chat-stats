@@ -1,6 +1,7 @@
-import { Link, Stack, Typography } from '@mui/material';
+import { IconButton, Stack, Link, Tooltip, Typography } from '@mui/material';
 import { messages } from '~/i18n/messages';
 import { useMessages } from '~/i18n/react';
+import { GitHubIcon } from './icons';
 
 const GITHUB_URL = 'https://github.com/tletelieru';
 const SITE_URL = 'https://tletelieru.github.io/tletelieru/';
@@ -12,18 +13,26 @@ export default function Footer() {
     <Stack
       component="footer"
       direction="row"
-      useFlexGap
-      sx={{ flexWrap: 'wrap', justifyContent: 'center', gap: 1.5, pt: 2 }}
+      spacing={0.5}
+      sx={{ alignItems: 'center', justifyContent: 'center', pt: 2 }}
     >
       <Typography variant="body2" color="text.secondary">
         {t.developedBy}{' '}
-        <Link href={GITHUB_URL} target="_blank" rel="noreferrer">
+        <Link href={SITE_URL} target="_blank" rel="noreferrer">
           tletelieru
         </Link>
       </Typography>
-      <Link variant="body2" href={SITE_URL} target="_blank" rel="noreferrer">
-        {t.site}
-      </Link>
+      <Tooltip title="GitHub">
+        <IconButton
+          size="small"
+          aria-label="GitHub"
+          href={GITHUB_URL}
+          target="_blank"
+          rel="noreferrer"
+        >
+          <GitHubIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
     </Stack>
   );
 }
