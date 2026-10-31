@@ -79,7 +79,7 @@ export default function Landing({ error, onFiles, onOpenSaved }: Props) {
         </Typography>
         <Grid container spacing={2}>
           {t.howTo.guides.map(({ name, steps, images }) => (
-            <Grid key={name} size={{ xs: 12, md: 6 }}>
+            <Grid key={name} size={12}>
               <Box
                 sx={{
                   p: 2.5,
@@ -102,7 +102,15 @@ export default function Landing({ error, onFiles, onOpenSaved }: Props) {
                   ))}
                 </Box>
                 {images && (
-                  <Stack direction="row" spacing={1.5} sx={{ mt: 2, alignItems: 'flex-start' }}>
+                  <Box
+                    sx={{
+                      mt: 2,
+                      display: 'grid',
+                      gap: 1.5,
+                      alignItems: 'start',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 210px))',
+                    }}
+                  >
                     {images.map(({ src, alt }) => (
                       <Box
                         key={src}
@@ -110,10 +118,10 @@ export default function Landing({ error, onFiles, onOpenSaved }: Props) {
                         src={`${BASE_PATH}/${src}`}
                         alt={alt}
                         loading="lazy"
-                        sx={{ width: 'calc(50% - 6px)', height: 'auto', borderRadius: 1 }}
+                        sx={{ width: '100%', height: 'auto', borderRadius: 1 }}
                       />
                     ))}
-                  </Stack>
+                  </Box>
                 )}
               </Box>
             </Grid>
