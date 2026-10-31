@@ -70,7 +70,11 @@ function Content({ locale, mode, onLocale, onToggleMode }: ContentProps) {
             <Typography variant="h5" component="h1">
               {saved.name}
             </Typography>
-            <StatsView stats={saved.stats} timeZone={saved.timeZone} />
+            <StatsView
+              stats={saved.stats}
+              timeZone={saved.timeZone}
+              media={saved.thumbs && { ratio: 0, thumbs: saved.thumbs }}
+            />
           </Suspense>
         )}
         {state.phase === 'parsing' && (

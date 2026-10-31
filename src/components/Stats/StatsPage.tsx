@@ -2,6 +2,7 @@ import { Alert, Box, Button, LinearProgress, Stack } from '@mui/material';
 import { useEffect, useRef, useState } from 'react';
 import type { LoadedChat, MediaState } from '~/components/useChatSession';
 import { saveStats } from '~/lib/saved';
+import { compressThumbnails } from '~/lib/thumbnails';
 import { messages } from '~/i18n/messages';
 import { useMessages } from '~/i18n/react';
 import type { Filter, StatsResult } from '~/lib/stats/types';
@@ -79,12 +80,17 @@ export default function StatsPage({ chat, stats, media, onCompute }: Props) {
           variant="outlined"
           size="small"
           onClick={() => {
-            void saveStats({
-              name: chat.name,
-              savedAt: Date.now(),
-              timeZone: controls.timeZone,
-              stats,
-            }).then(() => setSavedOk(true));
+            void compressThumbnails(media?.thumbs ?? {})
+              .then((thumbs) =>
+                saveStats({
+                  name: chat.name,
+                  savedAt: Date.now(),
+                  timeZone: controls.timeZone,
+                  stats,
+                  thumbs,
+                }),
+              )
+              .then(() => setSavedOk(true));
           }}
         >
           {t.save.action}
