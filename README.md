@@ -90,3 +90,7 @@ Never commit real chat exports. Test fixtures must use invented names and messag
 ---
 
 Developed by [tletelieru](https://tletelieru.github.io/tletelieru/) · [GitHub](https://github.com/tletelieru)
+
+## License
+
+All rights reserved. See [LICENSE](LICENSE).
