@@ -7,7 +7,7 @@ import {
   ThemeProvider,
   Typography,
 } from '@mui/material';
-import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { messages } from '~/i18n/messages';
 import { pickLocale, preferredLocaleKey } from '~/i18n/locales';
 import type { Locale } from '~/i18n/locales';
@@ -20,10 +20,11 @@ import Header from './Header';
 import ChatPicker from './Import/ChatPicker';
 import Landing from './Import/Landing';
 import ReviewPeople from './Import/ReviewPeople';
+import { lazyChunk } from './lazyChunk';
 import { useChatSession } from './useChatSession';
 
-const StatsPage = lazy(() => import('./Stats/StatsPage'));
-const StatsView = lazy(() => import('./Stats/StatsView'));
+const StatsPage = lazyChunk(() => import('./Stats/StatsPage'));
+const StatsView = lazyChunk(() => import('./Stats/StatsView'));
 
 const prefersDark = () => window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
 
