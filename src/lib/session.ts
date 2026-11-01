@@ -64,6 +64,7 @@ export type WorkerResponse =
 
 const MIME_TYPES: Record<string, string> = {
   gif: 'image/gif',
+  jpeg: 'image/jpeg',
   jpg: 'image/jpeg',
   mp4: 'video/mp4',
   png: 'image/png',
@@ -170,10 +171,10 @@ export function createSession(post: (response: WorkerResponse) => void) {
     const thumbs: Record<string, Blob> = {};
     for (const key of topMediaKeys(columns.mediaKey, columns.mediaKeys)) {
       const source = byName.get(key);
-      if (source) {
-        const extension = key.slice(key.lastIndexOf('.') + 1).toLowerCase();
+      const type = MIME_TYPES[key.slice(key.lastIndexOf('.') + 1).toLowerCase()];
+      if (source && type) {
         const bytes = await source.read();
-        thumbs[key] = new Blob([bytes.slice()], { type: MIME_TYPES[extension] ?? '' });
+        thumbs[key] = new Blob([bytes.slice()], { type });
       }
     }
     post({ type: 'media', merged: canonical.size > 0, thumbs });

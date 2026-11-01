@@ -101,6 +101,38 @@ describe('createSession', () => {
     expect(find('ready')).toMatchObject({ name: 'Chat con Ana', unknownMedia: 1 });
   });
 
+  it('sends thumbnails only for media a browser can show', async () => {
+    const { session, find } = collect();
+    const sticker = (id: number, file: string) => ({
+      id,
+      type: 'message',
+      date: '2024-01-01T10:00:00',
+      date_unixtime: String(1_704_103_200 + id),
+      from: 'Ana',
+      from_id: 'user1',
+      file,
+      media_type: 'sticker',
+      text: '',
+      text_entities: [],
+    });
+    const chat = {
+      name: 'Ana',
+      type: 'personal_chat',
+      id: 1,
+      messages: [sticker(1, 'stickers/a.tgs'), sticker(2, 'stickers/b.webp')],
+    };
+    const files = [
+      fileOf('result.json', JSON.stringify(chat)),
+      fileOf('a.tgs', 'animated'),
+      fileOf('b.webp', 'still'),
+    ];
+    Object.defineProperty(files[1], 'webkitRelativePath', { value: 'chat/stickers/a.tgs' });
+    Object.defineProperty(files[2], 'webkitRelativePath', { value: 'chat/stickers/b.webp' });
+    await session.handle({ type: 'open', files });
+    await session.handle({ type: 'hashMedia' });
+    expect(Object.keys(find('media')?.thumbs ?? {})).toEqual(['stickers/b.webp']);
+  });
+
   it('explains a Telegram HTML export folder', async () => {
     const { session, find } = collect();
     const files = [fileOf('style.css', 'body {}'), fileOf('messages.html', '<html></html>')];
