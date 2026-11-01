@@ -10,6 +10,7 @@ type Strings = {
   toLight: string;
   toDark: string;
   language: string;
+  chunkUnavailable: string;
   errors: Record<ErrorCode, string>;
   progress: Record<ProgressStep, string>;
   hero: { title: string; subtitle: string };
@@ -204,6 +205,8 @@ const en: Strings = {
   toLight: 'Switch to light mode',
   toDark: 'Switch to dark mode',
   language: 'Language',
+  chunkUnavailable:
+    'Stats are not available offline yet. Connect to the internet and reload this page once.',
   errors: {
     'no-chats': 'No chats found in this file.',
     'no-chat-file': 'This archive has no chat text file.',
@@ -485,6 +488,8 @@ const es: Strings = {
   toLight: 'Cambiar a modo claro',
   toDark: 'Cambiar a modo oscuro',
   language: 'Idioma',
+  chunkUnavailable:
+    'Las estadísticas aún no están disponibles sin conexión. Conéctate a internet y recarga esta página una vez.',
   errors: {
     'no-chats': 'No se encontraron chats en este archivo.',
     'no-chat-file': 'Este archivo comprimido no tiene el texto del chat.',
