@@ -52,6 +52,7 @@ export async function renderPdf(
       pixelRatio,
       backgroundColor,
       skipFonts: true,
+      onImageErrorHandler: () => undefined,
       style: { transform: `translateY(-${slice.top}px)`, transformOrigin: 'top left' },
     });
     const image = canvas.toDataURL('image/jpeg', JPEG_QUALITY);
