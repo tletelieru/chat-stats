@@ -32,6 +32,8 @@ Astro static output, one React island (`client:only="react"`), TypeScript strict
   shims.
 - `scripts/csp.mjs` adds the CSP meta tag with inline script hashes at build time and must stay
   before `AstroPWA` in `integrations`, so the precache revision sees the final `index.html`.
+- The precache holds only the app shell. `globIgnores` in `astro.config.mjs` lists lazy chunks by name, so
+  a new lazy library adds its chunk there; everything else is cached by `src/sw.ts` on first use.
 - `trailingSlash: 'always'` keeps the precached app URL as `/chat-stats/`. Offline breaks without it.
 - Unit tests mock `Chart`, so check chart changes against `npm run preview` in a real browser.
 - WhatsApp exports have no timezone: times are read as America/Santiago wall time at import.

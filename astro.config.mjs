@@ -56,6 +56,10 @@ export default defineConfig({
       },
       injectManifest: {
         globPatterns: ['**/*.{html,js,css,svg,png,ico,webp,woff,woff2,txt}'],
+        globIgnores: [
+          '_astro/{StatsPage,StatsView,jspdf.es.min,html2canvas,purify.es,index.es,es}.*.js',
+          'tutorial/**',
+        ],
       },
     }),
   ],

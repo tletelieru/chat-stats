@@ -1,5 +1,8 @@
 import { clientsClaim } from 'workbox-core';
+import { ExpirationPlugin } from 'workbox-expiration';
 import { precacheAndRoute } from 'workbox-precaching';
+import { registerRoute } from 'workbox-routing';
+import { CacheFirst, StaleWhileRevalidate } from 'workbox-strategies';
 import { SHARE_CACHE, SHARE_KEY, SHARE_NAME_HEADER } from '~/lib/shared';
 
 type ShareEvent = Event & {
@@ -17,6 +20,9 @@ type WorkerScope = {
 const scope = self as unknown as WorkerScope;
 const SHARE_PATH = new URL('share-target', scope.location.href).pathname;
 const APP_PATH = new URL('./', scope.location.href).pathname;
+const ASSETS_PATH = `${APP_PATH}_astro/`;
+const TUTORIAL_PATH = `${APP_PATH}tutorial/`;
+const CACHE_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
 
 async function receiveShare(request: Request): Promise<Response> {
   const form = await request.formData();
@@ -45,3 +51,33 @@ clientsClaim();
 precacheAndRoute((self as unknown as WorkerScope).__WB_MANIFEST, {
   ignoreURLParametersMatching: [/.*/],
 });
+
+registerRoute(
+  ({ sameOrigin, url }) =>
+    sameOrigin && url.pathname.startsWith(ASSETS_PATH) && /\.(js|css)$/.test(url.pathname),
+  new StaleWhileRevalidate({
+    cacheName: 'lazy-assets',
+    plugins: [
+      new ExpirationPlugin({
+        maxEntries: 32,
+        maxAgeSeconds: CACHE_MAX_AGE_SECONDS,
+        purgeOnQuotaError: true,
+      }),
+    ],
+  }),
+);
+
+registerRoute(
+  ({ sameOrigin, url }) =>
+    sameOrigin && url.pathname.startsWith(TUTORIAL_PATH) && url.pathname.endsWith('.png'),
+  new CacheFirst({
+    cacheName: 'tutorial-images',
+    plugins: [
+      new ExpirationPlugin({
+        maxEntries: 16,
+        maxAgeSeconds: CACHE_MAX_AGE_SECONDS,
+        purgeOnQuotaError: true,
+      }),
+    ],
+  }),
+);
