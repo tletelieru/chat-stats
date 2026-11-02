@@ -349,6 +349,17 @@ describe('chosen colors', () => {
   });
 });
 
+describe('filter bar', () => {
+  it('lets the convo gap be cleared while typing', () => {
+    render(<StatsPage chat={chat} stats={stats} onCompute={vi.fn()} />);
+    const input = screen.getByLabelText('Convo gap (hours)');
+    fireEvent.change(input, { target: { value: '' } });
+    expect(input).toHaveValue(null);
+    fireEvent.blur(input);
+    expect(input).toHaveValue(6);
+  });
+});
+
 describe('export results', () => {
   it('opens the dialog with quotes off by default', async () => {
     render(<StatsPage chat={chat} stats={stats} onCompute={vi.fn()} />);

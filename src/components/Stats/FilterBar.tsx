@@ -1,4 +1,5 @@
 import { Autocomplete, Grid, MenuItem, Paper, TextField } from '@mui/material';
+import { useState } from 'react';
 import { messages } from '~/i18n/messages';
 import { useMessages } from '~/i18n/react';
 import type { Participant } from '~/lib/model';
@@ -26,6 +27,7 @@ type Props = {
 };
 
 export default function FilterBar({ people, controls, onChange }: Props) {
+  const [gapDraft, setGapDraft] = useState<string | null>(null);
   const t = useMessages(messages).filters;
   const set = (patch: Partial<Controls>) => onChange({ ...controls, ...patch });
 
@@ -108,11 +110,13 @@ export default function FilterBar({ people, controls, onChange }: Props) {
             type="number"
             label={t.gap}
             slotProps={{ htmlInput: { min: 0.5, step: 0.5 } }}
-            value={controls.gapHours}
+            value={gapDraft ?? controls.gapHours}
             onChange={(event) => {
+              setGapDraft(event.target.value);
               const gapHours = Number(event.target.value);
               if (gapHours > 0) set({ gapHours });
             }}
+            onBlur={() => setGapDraft(null)}
           />
         </Grid>
         <Grid size={{ xs: 12, md: 4 }}>
